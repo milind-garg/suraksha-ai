@@ -1,15 +1,14 @@
-import type { Metadata } from 'next'
+'use client'
+
+import { useEffect } from 'react'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
+import { configureAmplify } from '@/lib/amplify-config'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'Suraksha AI - Insurance Intelligence Platform',
-  description: 'AI-powered insurance policy analyzer for Indian families. Understand your coverage in Hindi & English.',
-  keywords: 'insurance, AI, India, policy analyzer, Hindi, coverage',
-}
+configureAmplify()
 
 export default function RootLayout({
   children,

@@ -4,6 +4,9 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Shield, LayoutDashboard, FileText, LogOut, Upload, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { logoutUser } from '@/lib/auth'
+import { useAuthStore } from '@/store/auth-store'
+import { useToast } from '@/hooks/use-toast'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', labelHindi: 'डैशबोर्ड', icon: LayoutDashboard },
@@ -15,10 +18,19 @@ const navItems = [
 export function DashboardNav() {
   const router = useRouter()
   const pathname = usePathname()
+  const { clearUser, user } = useAuthStore()
+  const { toast } = useToast()
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token')
-    router.push('/login')
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } catch {
+      // ignore
+    } finally {
+      clearUser()
+      toast({ title: 'Logged out', description: 'See you soon!' })
+      router.push('/')
+    }
   }
 
   return (
@@ -32,6 +44,12 @@ export function DashboardNav() {
             <p className="text-xs text-gray-400 hindi-text">सुरक्षा AI</p>
           </div>
         </div>
+        {user && (
+          <div className="mt-3 bg-gray-800 rounded-lg px-3 py-2">
+            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          </div>
+        )}
       </div>
 
       {/* Nav Items */}
