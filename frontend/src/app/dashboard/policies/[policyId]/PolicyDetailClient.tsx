@@ -3,17 +3,24 @@
 import { useParams, useRouter } from 'next/navigation'
 import { usePolicyStore } from '@/store/policy-store'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Shield, Calendar, DollarSign, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, FileText, Shield, Calendar, IndianRupee, Trash2, Brain, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 
 export default function PolicyDetailClient() {
   const params = useParams()
   const router = useRouter()
   const { policies, removePolicy } = usePolicyStore()
-  const policy = policies.find(p => p.id === params.policyId)
+  const { toast } = useToast()
+
+  const policyId = params.policyId as string
+  const policy = policies.find(p => p.policyId === policyId)
 
   const handleDelete = () => {
-    if (policy && confirm('Delete this policy?')) {
-      removePolicy(policy.id)
+    if (confirm('Are you sure you want to delete this policy?')) {
+      removePolicy(policyId)
+      toast({ title: 'Policy Deleted', description: 'Policy removed successfully' })
       router.push('/dashboard/policies')
     }
   }
@@ -21,61 +28,160 @@ export default function PolicyDetailClient() {
   if (!policy) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Policy not found</p>
-        <Button onClick={() => router.push('/dashboard/policies')} className="mt-4">
+        <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+        <p className="text-gray-500 mb-4">Policy not found</p>
+        <Button onClick={() => router.push('/dashboard/policies')}>
           Back to Policies
         </Button>
       </div>
     )
   }
 
+  const TYPE_ICONS: Record<string, string> = {
+    health: '🏥', life: '💚', vehicle: '🚗',
+    home: '🏠', travel: '✈️', other: '📄'
+  }
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Button variant="ghost" onClick={() => router.back()} className="mb-6">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back
-      </Button>
-      <div className="bg-white rounded-xl shadow p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{policy.name}</h1>
-              <p className="text-gray-500 capitalize">{policy.type} Insurance</p>
-            </div>
-          </div>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="w-4 h-4 mr-2" /> Delete
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-              <Shield className="w-4 h-4" /> Coverage
-            </div>
-            <p className="text-xl font-semibold">₹{policy.coverage?.toLocaleString() || 'N/A'}</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-              <DollarSign className="w-4 h-4" /> Premium
-            </div>
-            <p className="text-xl font-semibold">₹{policy.premium?.toLocaleString() || 'N/A'}/yr</p>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-              <Calendar className="w-4 h-4" /> Expiry
-            </div>
-            <p className="text-xl font-semibold">{policy.expiryDate || 'N/A'}</p>
-          </div>
-        </div>
-        {policy.analysis && (
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">AI Analysis</h3>
-            <p className="text-blue-800 text-sm whitespace-pre-wrap">{policy.analysis}</p>
-          </div>
-        )}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <Button variant="ghost" onClick={() => router.push('/dashboard/policies')}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleDelete}
+          className="border-red-200 text-red-600 hover:bg-red-50"
+        >
+          <Trash2 className="w-4 h-4 mr-2" /> Delete
+        </Button>
       </div>
+
+      {/* Policy Overview */}
+      <Card className="border-0 shadow-sm mb-6">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <span className="text-4xl">{TYPE_ICONS[policy.policyType] || '📄'}</span>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{policy.policyName}</h1>
+              <p className="text-gray-500">{policy.insurerName}</p>
+              <Badge className={`mt-1 ${
+                policy.status === 'analyzed' ? 'bg-green-100 text-green-700' :
+                policy.status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {policy.status}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                <Shield className="w-3 h-3" /> Sum Insured
+              </div>
+              <p className="font-semibold">₹{(policy.sumInsured || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                <IndianRupee className="w-3 h-3" /> Premium
+              </div>
+              <p className="font-semibold">₹{(policy.premiumAmount || 0).toLocaleString('en-IN')}/yr</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                <Calendar className="w-3 h-3" /> Start Date
+              </div>
+              <p className="font-semibold">{policy.startDate || 'N/A'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-1 text-gray-500 text-xs mb-1">
+                <Calendar className="w-3 h-3" /> End Date
+              </div>
+              <p className="font-semibold">{policy.endDate || 'N/A'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Analysis */}
+      {policy.analysisResult && (
+        <Card className="border-0 shadow-sm mb-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-600" />
+              AI Analysis Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Summary */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="text-sm text-gray-800">{policy.analysisResult.summary}</p>
+              <p className="text-xs text-blue-600 hindi-text mt-2">{policy.analysisResult.summaryHindi}</p>
+            </div>
+
+            {/* Claim Success */}
+            <div className="flex items-center gap-4 bg-purple-50 rounded-lg p-4">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-purple-600">
+                  {policy.analysisResult.claimSuccessProbability}%
+                </p>
+                <p className="text-xs text-gray-500">Claim Success</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">Claim Success Probability</p>
+                <p className="text-xs text-gray-500">Based on policy terms and conditions analysis</p>
+              </div>
+            </div>
+
+            {/* Coverage Gaps */}
+            {policy.analysisResult.coverageGaps && policy.analysisResult.coverageGaps.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" /> Coverage Gaps
+                </h4>
+                <div className="space-y-2">
+                  {policy.analysisResult.coverageGaps.map((gap, i) => (
+                    <div key={i} className={`rounded-lg p-3 text-sm ${
+                      gap.severity === 'high' ? 'bg-red-50 text-red-800' :
+                      gap.severity === 'medium' ? 'bg-yellow-50 text-yellow-800' :
+                      'bg-gray-50 text-gray-800'
+                    }`}>
+                      <p className="font-medium">{gap.gap}</p>
+                      <p className="text-xs mt-1 opacity-80">{gap.recommendation}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {policy.analysisResult.recommendations && policy.analysisResult.recommendations.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Recommendations</h4>
+                <ul className="space-y-1">
+                  {policy.analysisResult.recommendations.map((rec, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No Analysis Yet */}
+      {!policy.analysisResult && (
+        <Card className="border-0 shadow-sm text-center p-8">
+          <Brain className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">No AI analysis yet</p>
+          <p className="text-blue-500 hindi-text text-sm mt-1">अभी कोई AI विश्लेषण नहीं है</p>
+        </Card>
+      )}
     </div>
   )
 }
