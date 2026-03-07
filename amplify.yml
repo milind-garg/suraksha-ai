@@ -8,6 +8,10 @@ applications:
         build:
           commands:
             - npm run build
+            - echo "=== Listing build output ==="
+            - ls -la
+            - ls -la out || echo "NO OUT FOLDER"
+            - ls -la .next || echo "NO .NEXT FOLDER"
       artifacts:
         baseDirectory: out
         files:
