@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-static'
-
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { usePolicyStore } from '@/store/policy-store'
@@ -16,6 +14,10 @@ import {
   XCircle, ArrowLeft, IndianRupee, Calendar,
   TrendingUp, FileText, ChevronRight, Trash2
 } from 'lucide-react'
+
+export async function generateStaticParams() {
+  return []
+}
 
 export default function PolicyDetailPage() {
   const params = useParams()
