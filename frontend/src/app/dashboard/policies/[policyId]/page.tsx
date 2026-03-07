@@ -12,14 +12,14 @@ import { useToast } from '@/hooks/use-toast'
 import {
   Brain, Shield, AlertTriangle, CheckCircle,
   XCircle, ArrowLeft, IndianRupee, Calendar,
-  TrendingUp, FileText, ChevronRight
+  TrendingUp, FileText, ChevronRight, Trash2
 } from 'lucide-react'
 
 export default function PolicyDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
-  const { policies, currentPolicy, setCurrentPolicy, updatePolicy } = usePolicyStore()
+  const { policies, currentPolicy, setCurrentPolicy, updatePolicy, removePolicy } = usePolicyStore()
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   const policyId = params.policyId as string
@@ -122,6 +122,14 @@ export default function PolicyDetailPage() {
   }
 }
 
+const handleDelete = () => {
+  if (confirm('Are you sure you want to delete this policy?')) {
+    removePolicy(policyId)
+    toast({ title: 'Policy Deleted', description: 'Policy removed successfully' })
+    router.push('/dashboard/policies')
+  }
+}
+
   if (!currentPolicy) {
     return <LoadingSpinner size="lg" className="min-h-screen" text="Loading policy..." />
   }
@@ -135,11 +143,21 @@ export default function PolicyDetailPage() {
         titleHindi={currentPolicy.insurerName}
         description={`${currentPolicy.policyType.charAt(0).toUpperCase() + currentPolicy.policyType.slice(1)} Insurance Policy`}
       >
-        <Button variant="outline" onClick={() => router.push('/dashboard/policies')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </PageHeader>
+        <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              className="border-red-200 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/dashboard/policies')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          </div>
+        </PageHeader>
 
       <div className="p-6 max-w-5xl mx-auto space-y-6">
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type PolicyType = 'health' | 'life' | 'vehicle' | 'home' | 'travel' | 'other'
 export type PolicyStatus = 'uploaded' | 'processing' | 'analyzed' | 'error'
@@ -54,29 +55,43 @@ interface PolicyState {
   updatePolicy: (policyId: string, updates: Partial<Policy>) => void
   setCurrentPolicy: (policy: Policy | null) => void
   setLoading: (loading: boolean) => void
+  removePolicy: (policyId: string) => void
 }
 
-export const usePolicyStore = create<PolicyState>((set) => ({
-  policies: [],
-  currentPolicy: null,
-  isLoading: false,
+export const usePolicyStore = create<PolicyState>()(
+  persist(
+    (set) => ({
+      policies: [],
+      currentPolicy: null,
+      isLoading: false,
 
-  setPolicies: (policies) => set({ policies }),
+      setPolicies: (policies) => set({ policies }),
 
-  addPolicy: (policy) =>
-    set((state) => ({ policies: [policy, ...state.policies] })),
+      addPolicy: (policy) =>
+        set((state) => ({ policies: [policy, ...state.policies] })),
 
-  updatePolicy: (policyId, updates) =>
-    set((state) => ({
-      policies: state.policies.map((p) =>
-        p.policyId === policyId ? { ...p, ...updates } : p
-      ),
-      currentPolicy:
-        state.currentPolicy?.policyId === policyId
-          ? { ...state.currentPolicy, ...updates }
-          : state.currentPolicy
-    })),
+      updatePolicy: (policyId, updates) =>
+        set((state) => ({
+          policies: state.policies.map((p) =>
+            p.policyId === policyId ? { ...p, ...updates } : p
+          ),
+          currentPolicy:
+            state.currentPolicy?.policyId === policyId
+              ? { ...state.currentPolicy, ...updates }
+              : state.currentPolicy
+        })),
 
-  setCurrentPolicy: (policy) => set({ currentPolicy: policy }),
-  setLoading: (loading) => set({ isLoading: loading })
-}))
+      removePolicy: (policyId) =>
+        set((state) => ({
+          policies: state.policies.filter(p => p.policyId !== policyId)
+        })),
+
+      setCurrentPolicy: (policy) => set({ currentPolicy: policy }),
+      setLoading: (loading) => set({ isLoading: loading })
+    }),
+    {
+      name: 'suraksha-policies',
+      partialize: (state) => ({ policies: state.policies })
+    }
+  )
+)

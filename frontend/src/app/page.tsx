@@ -107,13 +107,13 @@ export default function LandingPage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button
-              size="lg"
-              variant="outline"
-              onClick={() => router.push('/login')}
-              className="border-white text-white hover:bg-white/10 text-lg px-8 py-6"
-            >
-              Login to Dashboard
-            </Button>
+  size="lg"
+  variant="outline"
+  onClick={() => router.push('/login')}
+  className="border-white text-blue-700 bg-white hover:bg-blue-50 text-lg px-8 py-6"
+>
+  Login to Dashboard
+</Button>
           </div>
         </div>
       </section>
