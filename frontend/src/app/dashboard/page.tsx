@@ -28,7 +28,6 @@ export default function DashboardPage() {
     else setGreeting('Shubh Sandhya')
   }, [])
 
-  // Calculate stats from real policy data
   const totalPolicies = policies.length
   const analyzedPolicies = policies.filter(p => p.status === 'analyzed')
   const totalCoverage = policies.reduce((sum, p) => sum + (p.sumInsured || 0), 0)
@@ -57,7 +56,9 @@ export default function DashboardPage() {
       value: totalCoverage > 0 ? `₹${(totalCoverage / 100000).toFixed(1)}L` : 'N/A',
       icon: <Shield className="h-6 w-6 text-green-600" />,
       color: 'bg-green-50',
-      sub: totalPremium > 0 ? `₹${totalPremium.toLocaleString('en-IN')}/yr premium` : 'No policies yet'
+      sub: totalPremium > 0
+        ? `₹${totalPremium.toLocaleString('en-IN')}/yr premium`
+        : 'No policies yet'
     },
     {
       title: 'Coverage Gaps',
@@ -73,7 +74,38 @@ export default function DashboardPage() {
       value: avgClaimProbability > 0 ? `${avgClaimProbability}%` : 'N/A',
       icon: <TrendingUp className="h-6 w-6 text-purple-600" />,
       color: 'bg-purple-50',
-      sub: avgClaimProbability >= 70 ? 'Good chances' : avgClaimProbability > 0 ? 'Needs attention' : 'Analyze a policy'
+      sub: avgClaimProbability >= 70
+        ? 'Good chances'
+        : avgClaimProbability > 0
+        ? 'Needs attention'
+        : 'Analyze a policy'
+    }
+  ]
+
+  const quickActions = [
+    {
+      title: 'Upload New Policy',
+      titleHindi: 'नई पॉलिसी अपलोड करें',
+      description: 'Add an insurance document for AI analysis',
+      icon: <Upload className="h-8 w-8 text-white" />,
+      action: () => router.push('/dashboard/upload'),
+      primary: true
+    },
+    {
+      title: 'Gap Analysis',
+      titleHindi: 'कवरेज गैप विश्लेषण',
+      description: 'See what coverage you are missing',
+      icon: <AlertTriangle className="h-8 w-8 text-orange-600" />,
+      action: () => router.push('/dashboard/gap-analysis'),
+      primary: false
+    },
+    {
+      title: 'View My Policies',
+      titleHindi: 'मेरी पॉलिसी देखें',
+      description: 'See all your analyzed insurance policies',
+      icon: <FileText className="h-8 w-8 text-gray-600" />,
+      action: () => router.push('/dashboard/policies'),
+      primary: false
     }
   ]
 
@@ -115,6 +147,56 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            Quick Actions / त्वरित कार्य
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {quickActions.map((action, i) => (
+              <Card
+                key={i}
+                className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
+                  action.primary ? 'bg-blue-600 text-white' : 'bg-white'
+                }`}
+                onClick={action.action}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        action.primary ? 'bg-white/20' : 'bg-gray-50'
+                      }`}>
+                        {action.icon}
+                      </div>
+                      <div>
+                        <h3 className={`font-semibold text-sm ${
+                          action.primary ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {action.title}
+                        </h3>
+                        <p className={`text-xs hindi-text ${
+                          action.primary ? 'text-blue-100' : 'text-blue-500'
+                        }`}>
+                          {action.titleHindi}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          action.primary ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {action.description}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className={`h-4 w-4 flex-shrink-0 ${
+                      action.primary ? 'text-white' : 'text-gray-400'
+                    }`} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Left Column */}
@@ -137,9 +219,15 @@ export default function DashboardPage() {
                       (totalGaps === 0 ? 20 : Math.max(0, 20 - totalGaps * 5))
                     ))
                     const scoreInt = Math.round(score)
-                    const label = scoreInt >= 80 ? 'Excellent' : scoreInt >= 60 ? 'Good' : scoreInt >= 40 ? 'Fair' : 'Needs Work'
-                    const labelHindi = scoreInt >= 80 ? 'उत्कृष्ट' : scoreInt >= 60 ? 'अच्छा' : scoreInt >= 40 ? 'ठीक है' : 'सुधार जरूरी'
-                    const color = scoreInt >= 80 ? 'text-green-600' : scoreInt >= 60 ? 'text-blue-600' : scoreInt >= 40 ? 'text-yellow-600' : 'text-red-600'
+                    const label = scoreInt >= 80 ? 'Excellent' :
+                      scoreInt >= 60 ? 'Good' :
+                      scoreInt >= 40 ? 'Fair' : 'Needs Work'
+                    const labelHindi = scoreInt >= 80 ? 'उत्कृष्ट' :
+                      scoreInt >= 60 ? 'अच्छा' :
+                      scoreInt >= 40 ? 'ठीक है' : 'सुधार जरूरी'
+                    const color = scoreInt >= 80 ? 'text-green-600' :
+                      scoreInt >= 60 ? 'text-blue-600' :
+                      scoreInt >= 40 ? 'text-yellow-600' : 'text-red-600'
 
                     return (
                       <div className="space-y-3">
@@ -148,14 +236,25 @@ export default function DashboardPage() {
                             <span className={`text-3xl font-bold ${color}`}>{scoreInt}</span>
                             <span className="text-gray-400 text-lg">/100</span>
                             <span className={`ml-2 font-medium ${color}`}>{label}</span>
-                            <span className={`ml-1 text-sm hindi-text ${color}`}>({labelHindi})</span>
+                            <span className={`ml-1 text-sm hindi-text ${color}`}>
+                              ({labelHindi})
+                            </span>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => router.push('/dashboard/gap-analysis')}
+                            className="text-blue-600 border-blue-200"
+                          >
+                            Full Analysis
+                            <ChevronRight className="h-3 w-3 ml-1" />
+                          </Button>
                         </div>
                         <Progress value={scoreInt} className="h-3" />
                         <p className="text-xs text-gray-500">
                           Based on {totalPolicies} {totalPolicies === 1 ? 'policy' : 'policies'},
-                          {analyzedPolicies.length} analyzed,
-                          {totalGaps} gap{totalGaps !== 1 ? 's' : ''} found
+                          {' '}{analyzedPolicies.length} analyzed,
+                          {' '}{totalGaps} gap{totalGaps !== 1 ? 's' : ''} found
                         </p>
                       </div>
                     )
@@ -188,7 +287,9 @@ export default function DashboardPage() {
                   <div className="text-center py-8">
                     <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500 text-sm">No policies yet</p>
-                    <p className="text-blue-500 hindi-text text-xs">अभी कोई पॉलिसी नहीं</p>
+                    <p className="text-blue-500 hindi-text text-xs">
+                      अभी कोई पॉलिसी नहीं
+                    </p>
                     <Button
                       size="sm"
                       onClick={() => router.push('/dashboard/upload')}
@@ -205,7 +306,9 @@ export default function DashboardPage() {
                         onClick={() => router.push(`/dashboard/policies/${policy.policyId}`)}
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       >
-                        <span className="text-xl">{TYPE_ICONS[policy.policyType] || '📄'}</span>
+                        <span className="text-xl">
+                          {TYPE_ICONS[policy.policyType] || '📄'}
+                        </span>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-sm truncate">
                             {policy.policyName}
@@ -214,9 +317,11 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge className={`text-xs ${
-                            policy.status === 'analyzed' ? 'bg-green-100 text-green-700' :
-                            policy.status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-blue-100 text-blue-700'
+                            policy.status === 'analyzed'
+                              ? 'bg-green-100 text-green-700'
+                              : policy.status === 'processing'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-blue-100 text-blue-700'
                           }`}>
                             {policy.status}
                           </Badge>
@@ -243,16 +348,14 @@ export default function DashboardPage() {
                 <Upload className="h-10 w-10 mx-auto mb-3 opacity-90" />
                 <h3 className="font-bold text-lg">Upload Policy</h3>
                 <p className="text-blue-100 hindi-text text-sm">पॉलिसी अपलोड करें</p>
-                <p className="text-blue-200 text-xs mt-2">
-                  Get instant AI analysis
-                </p>
+                <p className="text-blue-200 text-xs mt-2">Get instant AI analysis</p>
                 <div className="mt-3 bg-white/20 rounded-lg px-3 py-1.5 text-sm font-medium">
                   Start Now →
                 </div>
               </CardContent>
             </Card>
 
-            {/* Coverage Tips */}
+            {/* AI Tips */}
             <Card className="border-0 shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -263,9 +366,18 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-3">
                   {[
-                    { tip: 'Health insurance should cover at least ₹5 lakh per family member', hindi: 'प्रति परिवार ₹5 लाख का स्वास्थ्य बीमा जरूरी है' },
-                    { tip: 'Always check the waiting period for pre-existing conditions', hindi: 'पहले से मौजूद बीमारियों की प्रतीक्षा अवधि जांचें' },
-                    { tip: 'Renew policies 30 days before expiry to avoid gaps', hindi: 'समाप्ति से 30 दिन पहले पॉलिसी नवीनीकृत करें' },
+                    {
+                      tip: 'Health insurance should cover at least ₹5 lakh per family member',
+                      hindi: 'प्रति परिवार ₹5 लाख का स्वास्थ्य बीमा जरूरी है'
+                    },
+                    {
+                      tip: 'Always check the waiting period for pre-existing conditions',
+                      hindi: 'पहले से मौजूद बीमारियों की प्रतीक्षा अवधि जांचें'
+                    },
+                    {
+                      tip: 'Renew policies 30 days before expiry to avoid gaps',
+                      hindi: 'समाप्ति से 30 दिन पहले पॉलिसी नवीनीकृत करें'
+                    },
                   ].map((item, i) => (
                     <div key={i} className="flex gap-2">
                       <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
@@ -273,7 +385,9 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <p className="text-xs text-gray-700">{item.tip}</p>
-                        <p className="text-xs text-purple-600 hindi-text mt-0.5">{item.hindi}</p>
+                        <p className="text-xs text-purple-600 hindi-text mt-0.5">
+                          {item.hindi}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -281,7 +395,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Getting Started Checklist */}
+            {/* Getting Started */}
             <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">
@@ -294,7 +408,11 @@ export default function DashboardPage() {
                     { done: true, text: 'Create account', hindi: 'अकाउंट बनाएं' },
                     { done: totalPolicies > 0, text: 'Upload a policy', hindi: 'पॉलिसी अपलोड करें' },
                     { done: analyzedPolicies.length > 0, text: 'Run AI analysis', hindi: 'AI विश्लेषण करें' },
-                    { done: totalGaps === 0 && analyzedPolicies.length > 0, text: 'Fix coverage gaps', hindi: 'कवरेज गैप ठीक करें' },
+                    {
+                      done: totalGaps === 0 && analyzedPolicies.length > 0,
+                      text: 'Fix coverage gaps',
+                      hindi: 'कवरेज गैप ठीक करें'
+                    },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
                       {item.done
@@ -302,10 +420,14 @@ export default function DashboardPage() {
                         : <Clock className="h-4 w-4 text-gray-300 flex-shrink-0" />
                       }
                       <div>
-                        <span className={`text-xs ${item.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                        <span className={`text-xs ${
+                          item.done ? 'text-gray-400 line-through' : 'text-gray-700'
+                        }`}>
                           {item.text}
                         </span>
-                        <span className="text-xs text-blue-400 hindi-text ml-1">{item.hindi}</span>
+                        <span className="text-xs text-blue-400 hindi-text ml-1">
+                          {item.hindi}
+                        </span>
                       </div>
                     </div>
                   ))}
