@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Suraksha AI - API Gateway and Lambda Functions'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  ProjectName:
+    Type: String
+    Default: suraksha-ai
+  LambdaRoleArn:
+    Type: String
+  S3BucketName:
+    Type: String
+  PoliciesTableName:
+    Type: String
+  UsersTableName:
+    Type: String
+  CognitoUserPoolArn:
+    Type: String
+
+Resources:
+
+  # ── Lambda: Upload Handler ──────────────────────────
+  UploadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-upload-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.getPresignedUrl
+      Role: !Ref LambdaRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          exports.getPresignedUrl = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': '*'},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          S3_BUCKET_NAME: !Ref S3BucketName
+          DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
+          DYNAMODB_TABLE_USERS: !Ref UsersTableName
+          NODE_ENV: !Ref Environment
+
+  # ── Lambda: Analysis Handler ────────────────────────
+  AnalysisFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-analysis-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.analyzePolicy
+      Role: !Ref LambdaRoleArn
+      Timeout: 300
+      MemorySize: 1024
+      Code:
+        ZipFile: |
+          exports.analyzePolicy = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': '*'},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          S3_BUCKET_NAME: !Ref S3BucketName
+          DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
+          BEDROCK_MODEL_ID: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+          NODE_ENV: !Ref Environment
+
+  # ── Lambda: Policy Handler ──────────────────────────
+  PolicyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-policy-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.listPolicies
+      Role: !Ref LambdaRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          exports.listPolicies = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': '*'},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          S3_BUCKET_NAME: !Ref S3BucketName
+          DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
+          NODE_ENV: !Ref Environment
+
+  # ── API Gateway ─────────────────────────────────────
+  SurakshaAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ProjectName}-api-${Environment}'
+      Description: Suraksha AI REST API
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  # ── Cognito Authorizer ──────────────────────────────
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CognitoAuthorizer
+      RestApiId: !Ref SurakshaAPI
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !Ref CognitoUserPoolArn
+
+Outputs:
+  UploadFunctionArn:
+    Value: !GetAtt UploadFunction.Arn
+  AnalysisFunctionArn:
+    Value: !GetAtt AnalysisFunction.Arn
+  PolicyFunctionArn:
+    Value: !GetAtt PolicyFunction.Arn
+  APIGatewayId:
+    Value: !Ref SurakshaAPI

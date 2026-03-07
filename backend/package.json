@@ -22,6 +22,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.5",
     "@types/uuid": "^10.0.0",
