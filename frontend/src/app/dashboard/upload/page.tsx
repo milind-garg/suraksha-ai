@@ -85,60 +85,115 @@ export default function UploadPage() {
 
   // ─── Handle Upload ─────────────────────────────────────
   const handleUpload = async () => {
-    if (!form.policyName || !form.policyType || !file) {
-      toast({
-        title: 'Missing Details',
-        description: 'Please fill in policy name and type',
-        variant: 'destructive'
+  if (!form.policyName || !form.policyType || !file) {
+    toast({
+      title: 'Missing Details',
+      description: 'Please fill in policy name and type',
+      variant: 'destructive'
+    })
+    return
+  }
+
+  setStep('uploading')
+  setUploadProgress(0)
+
+  try {
+    const policyId = uuidv4()
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+
+    if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+      // ── REAL API FLOW ──────────────────────────────
+      setUploadProgress(10)
+
+      // Get presigned URL from Lambda
+      const token = localStorage.getItem('auth_token')
+      const urlResponse = await fetch(`${apiUrl}/upload/presigned-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && token !== 'demo-token' ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          policyName: form.policyName,
+          policyType: form.policyType,
+          insurerName: form.insurerName,
+          policyNumber: form.policyNumber,
+          premiumAmount: parseFloat(form.premiumAmount) || 0,
+          sumInsured: parseFloat(form.sumInsured) || 0,
+          startDate: form.startDate,
+          endDate: form.endDate,
+        })
       })
-      return
-    }
 
-    setStep('uploading')
-    setUploadProgress(0)
+      const { uploadUrl, policyId: realPolicyId, s3Key } = await urlResponse.json()
+      setUploadProgress(30)
 
-    try {
-      // Simulate upload progress for demo
-      // In production this calls the real API
-      const policyId = uuidv4()
+      // Upload to S3
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type }
+      })
 
-      // Simulate progress
+      setUploadProgress(100)
+      const newPolicy = {
+        policyId: realPolicyId,
+        userId: user?.userId || 'demo-user',
+        policyName: form.policyName,
+        policyType: form.policyType,
+        insurerName: form.insurerName || '',
+        policyNumber: form.policyNumber || '',
+        premiumAmount: parseFloat(form.premiumAmount) || 0,
+        sumInsured: parseFloat(form.sumInsured) || 0,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        status: 'uploaded' as const,
+        s3Key,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      addPolicy(newPolicy)
+      setUploadedPolicyId(realPolicyId)
+
+    } else {
+      // ── DEMO FLOW ──────────────────────────────────
       for (let i = 0; i <= 100; i += 10) {
         await new Promise(r => setTimeout(r, 150))
         setUploadProgress(i)
       }
-
-      // Create a demo policy object
       const newPolicy = {
         policyId,
         userId: user?.userId || 'demo-user',
         policyName: form.policyName,
         policyType: form.policyType,
-        insurerName: form.insurerName || 'Unknown Insurer',
-        policyNumber: form.policyNumber || 'N/A',
+        insurerName: form.insurerName || 'Demo Insurer',
+        policyNumber: form.policyNumber || 'DEMO-001',
         premiumAmount: parseFloat(form.premiumAmount) || 0,
         sumInsured: parseFloat(form.sumInsured) || 0,
-        startDate: form.startDate || new Date().toISOString().split('T')[0],
-        endDate: form.endDate || '',
+        startDate: form.startDate,
+        endDate: form.endDate,
         status: 'uploaded' as const,
-        s3Key: `policies/${policyId}/${file.name}`,
+        s3Key: `demo/${policyId}/${file.name}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-
       addPolicy(newPolicy)
       setUploadedPolicyId(policyId)
-      setStep('success')
-
-    } catch (error: any) {
-      toast({
-        title: 'Upload Failed',
-        description: error.message || 'Something went wrong',
-        variant: 'destructive'
-      })
-      setStep('details')
     }
+
+    setStep('success')
+
+  } catch (error: any) {
+    toast({
+      title: 'Upload Failed',
+      description: error.message || 'Something went wrong',
+      variant: 'destructive'
+    })
+    setStep('details')
   }
+}
 
   const resetUpload = () => {
     setFile(null)

@@ -35,62 +35,92 @@ export default function PolicyDetailPage() {
 
   // ─── Mock AI Analysis ──────────────────────────────────
   const handleAnalyze = async () => {
-    setIsAnalyzing(true)
-    updatePolicy(policyId, { status: 'processing' })
+  setIsAnalyzing(true)
+  updatePolicy(policyId, { status: 'processing' })
 
-    try {
-      // Simulate AI analysis delay
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+
+    if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+      // ── REAL API: Call Lambda + Textract + Claude ──
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`${apiUrl}/policies/${policyId}/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && token !== 'demo-token' ? { Authorization: `Bearer ${token}` } : {})
+        }
+      })
+
+      if (!response.ok) throw new Error('Analysis failed')
+
+      const data = await response.json()
+      updatePolicy(policyId, {
+        status: 'analyzed',
+        analysisResult: data.analysisResult
+      })
+
+    } else {
+      // ── DEMO: Mock analysis ────────────────────────
       await new Promise(r => setTimeout(r, 3000))
 
       const mockAnalysis = {
-        summary: `This ${currentPolicy?.policyType} insurance policy from ${currentPolicy?.insurerName || 'your insurer'} provides coverage of ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'}. The policy covers major risks and includes standard exclusions. Review the coverage details below for a complete understanding.`,
-        summaryHindi: `यह ${currentPolicy?.insurerName || 'आपकी बीमा कंपनी'} की ${currentPolicy?.policyType} बीमा पॉलिसी ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'} का कवरेज प्रदान करती है। पॉलिसी प्रमुख जोखिमों को कवर करती है और इसमें मानक अपवाद शामिल हैं।`,
+        summary: `This ${currentPolicy?.policyType} insurance policy from ${currentPolicy?.insurerName || 'your insurer'} provides coverage of ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'}. The policy covers major risks with standard exclusions. Review coverage details for complete understanding of your protection.`,
+        summaryHindi: `यह ${currentPolicy?.insurerName || 'आपकी बीमा कंपनी'} की ${currentPolicy?.policyType} बीमा पॉलिसी ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'} का कवरेज प्रदान करती है। पॉलिसी प्रमुख जोखिमों को कवर करती है। अपनी सुरक्षा को पूरी तरह समझने के लिए कवरेज विवरण की समीक्षा करें।`,
         coverageDetails: [
           { name: 'Hospitalization', covered: true, limit: '₹5,00,000', details: 'Covers in-patient hospitalization expenses' },
-          { name: 'Pre-existing Diseases', covered: true, limit: 'After 2 years', details: 'Covered after 24 months waiting period' },
-          { name: 'Day Care Procedures', covered: true, limit: '540 procedures', details: 'All listed day care treatments covered' },
+          { name: 'Pre-existing Diseases', covered: true, limit: 'After 2 years', details: 'Covered after 24-month waiting period' },
+          { name: 'Day Care Procedures', covered: true, limit: '540 procedures', details: 'All listed day care treatments included' },
           { name: 'Ambulance Charges', covered: true, limit: '₹2,000/incident', details: 'Emergency ambulance services' },
           { name: 'Dental Treatment', covered: false, limit: 'Not covered', details: 'Routine dental not included' },
-          { name: 'Maternity Benefits', covered: false, limit: 'Not covered', details: 'Add-on rider required' },
+          { name: 'Maternity Benefits', covered: false, limit: 'Not covered', details: 'Add-on rider required for coverage' },
         ],
         exclusions: [
           'Self-inflicted injuries or suicide attempts',
-          'War, nuclear risks, or civil unrest',
+          'War, nuclear risks, or civil unrest related injuries',
           'Cosmetic or aesthetic treatments',
-          'Experimental treatments not approved by medical authorities',
-          'Dental treatment (unless due to accident)',
+          'Dental treatment unless caused by accident',
+          'Experimental or unproven treatments',
         ],
         claimProcess: [
           'Inform insurer within 24 hours of hospitalization',
-          'Submit duly filled claim form with hospital bills',
-          'Attach discharge summary and all medical reports',
-          'Include prescription and pharmacy bills',
-          'Claim processed within 30 days of document submission',
+          'Submit filled claim form with all hospital bills',
+          'Attach discharge summary and medical reports',
+          'Include all prescription and pharmacy receipts',
+          'Claim settlement within 30 days of complete documents',
         ],
         claimSuccessProbability: 78,
         coverageGaps: [
-          { gap: 'No maternity coverage', severity: 'high' as const, recommendation: 'Add maternity rider for ₹2,000-3,000 additional premium' },
-          { gap: 'Dental not covered', severity: 'medium' as const, recommendation: 'Consider separate dental insurance plan' },
-          { gap: 'No critical illness cover', severity: 'high' as const, recommendation: 'Add critical illness rider for cancer, heart attack coverage' },
+          { gap: 'No maternity coverage', severity: 'high' as const, recommendation: 'Add maternity rider for ₹2,000-3,000 extra premium' },
+          { gap: 'Critical illness not covered', severity: 'high' as const, recommendation: 'Add critical illness rider for cancer, heart attack coverage' },
+          { gap: 'No dental coverage', severity: 'medium' as const, recommendation: 'Consider separate affordable dental plan' },
         ],
         recommendations: [
-          'Increase sum insured to ₹10 lakhs for better protection',
-          'Add critical illness rider for comprehensive coverage',
-          'Consider top-up plan to extend coverage at low cost',
-          'Review policy at renewal for better terms',
+          'Increase sum insured to ₹10 lakhs for better family protection',
+          'Add critical illness rider — covers cancer, heart attack, stroke',
+          'Consider top-up plan to extend coverage economically',
+          'Review and compare at next renewal for better terms',
         ]
       }
-
-      updatePolicy(policyId, { status: 'analyzed', analysisResult: mockAnalysis })
-      toast({ title: 'Analysis Complete!', description: 'AI has analyzed your policy' })
-
-    } catch (error) {
-      updatePolicy(policyId, { status: 'error' })
-      toast({ title: 'Analysis Failed', description: 'Please try again', variant: 'destructive' })
-    } finally {
-      setIsAnalyzing(false)
+      updatePolicy(policyId, {
+        status: 'analyzed',
+        analysisResult: mockAnalysis
+      })
     }
+
+    toast({ title: 'Analysis Complete!', description: 'AI has analyzed your policy' })
+
+  } catch (error: any) {
+    updatePolicy(policyId, { status: 'error' })
+    toast({
+      title: 'Analysis Failed',
+      description: error.message || 'Please try again',
+      variant: 'destructive'
+    })
+  } finally {
+    setIsAnalyzing(false)
   }
+}
 
   if (!currentPolicy) {
     return <LoadingSpinner size="lg" className="min-h-screen" text="Loading policy..." />
