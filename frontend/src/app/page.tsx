@@ -83,7 +83,7 @@ export default function LandingPage() {
       <section className="gradient-primary text-white py-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <Badge className="mb-4 bg-white/20 text-white border-white/30 hover:bg-white/30">
-            AWS AI for Bharat Hackathon 2024
+            AWS AI for Bharat Hackathon 2026
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in">
             Apni Insurance Ko
