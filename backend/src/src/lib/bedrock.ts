@@ -1,60 +1,58 @@
 import {
   BedrockRuntimeClient,
-  InvokeModelCommand
-} from '@aws-sdk/client-bedrock-runtime'
+  InvokeModelCommand,
+} from "@aws-sdk/client-bedrock-runtime";
 
 const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION || 'ap-south-1'
-})
+  region: process.env.AWS_REGION || "ap-south-1",
+});
 
-const MODEL_ID = process.env.BEDROCK_MODEL_ID ||
-  'anthropic.claude-3-5-sonnet-20241022-v2:0'
+const MODEL_ID =
+  process.env.BEDROCK_MODEL_ID || "anthropic.claude-3-5-sonnet-20241022-v2:0";
 
 export interface BedrockMessage {
-  role: 'user' | 'assistant'
-  content: string
+  role: "user" | "assistant";
+  content: string;
 }
 
 // ─── Core invoke function ──────────────────────────────
-export async function invokeClause(
+export async function invokeClaude(
   prompt: string,
   systemPrompt?: string,
-  maxTokens = 4096
+  maxTokens = 4096,
 ): Promise<string> {
   const body = {
-    anthropic_version: 'bedrock-2023-05-31',
+    anthropic_version: "bedrock-2023-05-31",
     max_tokens: maxTokens,
-    system: systemPrompt || 'You are Suraksha AI, an expert insurance policy analyzer for Indian families. Always respond in clear, simple language.',
-    messages: [
-      { role: 'user', content: prompt }
-    ]
-  }
+    system:
+      systemPrompt ||
+      "You are Suraksha AI, an expert insurance policy analyzer for Indian families. Always respond in clear, simple language.",
+    messages: [{ role: "user", content: prompt }],
+  };
 
   const command = new InvokeModelCommand({
     modelId: MODEL_ID,
-    contentType: 'application/json',
-    accept: 'application/json',
-    body: JSON.stringify(body)
-  })
+    contentType: "application/json",
+    accept: "application/json",
+    body: JSON.stringify(body),
+  });
 
-  const response = await client.send(command)
-  const responseBody = JSON.parse(
-    new TextDecoder().decode(response.body)
-  )
+  const response = await client.send(command);
+  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
 
-  return responseBody.content[0].text
+  return responseBody.content[0].text;
 }
 
 // ─── Analyze insurance policy ─────────────────────────
 export async function analyzePolicyWithClaude(
   extractedText: string,
   policyType: string,
-  policyName: string
+  policyName: string,
 ): Promise<string> {
   const systemPrompt = `You are Suraksha AI, an expert insurance policy analyzer for Indian families.
 Your job is to analyze insurance policy documents and provide clear, actionable insights.
 Always respond with valid JSON only — no markdown, no extra text.
-Be accurate, helpful, and use simple language that Indian families can understand.`
+Be accurate, helpful, and use simple language that Indian families can understand.`;
 
   const prompt = `Analyze this ${policyType} insurance policy named "${policyName}".
 
@@ -93,7 +91,7 @@ Respond with ONLY this JSON structure (no markdown, no extra text):
       "importance": "why this date matters"
     }
   ]
-}`
+}`;
 
-  return await invokeClause(prompt, systemPrompt, 4096)
+  return await invokeClaude(prompt, systemPrompt, 4096);
 }
