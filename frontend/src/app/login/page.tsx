@@ -1,79 +1,82 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import { loginUser, getCurrentUserInfo } from '@/lib/auth'
-import { useAuthStore } from '@/store/auth-store'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Shield, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { loginUser, getCurrentUserInfo } from "@/lib/auth";
+import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const { setUser } = useAuthStore()
-  const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [form, setForm] = useState({ email: '', password: '' })
+  const router = useRouter();
+  const { toast } = useToast();
+  const { setUser } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState({ email: "", password: "" });
 
   const handleLogin = async () => {
     if (!form.email || !form.password) {
       toast({
-        title: 'Error',
-        description: 'Please enter email and password',
-        variant: 'destructive'
-      })
-      return
+        title: "Error",
+        description: "Please enter email and password",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      await loginUser(form.email, form.password)
+      await loginUser(form.email, form.password);
 
       // Get user info after login
-      const userInfo = await getCurrentUserInfo()
+      const userInfo = await getCurrentUserInfo();
       if (userInfo && userInfo.token) {
-        const { user, token } = userInfo
+        const { user, token } = userInfo;
         setUser(
           {
             userId: user.userId,
             email: form.email,
-            name: user.username || form.email.split('@')[0],
+            name: user.username || form.email.split("@")[0],
           },
-          token
-        )
+          token,
+        );
         toast({
-          title: 'Welcome back!',
-          description: 'Login successful'
-        })
-        router.push('/dashboard')
+          title: "Welcome back!",
+          description: "Login successful",
+        });
+        router.push("/dashboard");
       }
     } catch (error: any) {
-      let message = 'Login failed. Please try again.'
-      if (error.name === 'NotAuthorizedException') {
-        message = 'Wrong email or password'
-      } else if (error.name === 'UserNotConfirmedException') {
-        message = 'Please verify your email first'
-        router.push('/signup')
-      } else if (error.name === 'UserNotFoundException') {
-        message = 'No account found with this email'
+      let message = "Login failed. Please try again.";
+      if (error.name === "NotAuthorizedException") {
+        message = "Wrong email or password";
+      } else if (error.name === "UserNotConfirmedException") {
+        message = "Please verify your email first";
+        router.push("/signup");
+      } else if (error.name === "UserNotFoundException") {
+        message = "No account found with this email";
       }
-      toast({ title: 'Login Failed', description: message, variant: 'destructive' })
+      toast({
+        title: "Login Failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleLogin()
-  }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleLogin();
+  };
 
   return (
     <div className="min-h-screen gradient-primary flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-
         {/* Header */}
         <div className="bg-gray-50 px-8 py-6 text-center border-b">
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -85,7 +88,6 @@ export default function LoginPage() {
         </div>
 
         <div className="p-8 space-y-5">
-
           <div>
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -93,8 +95,10 @@ export default function LoginPage() {
               type="email"
               placeholder="rahul@example.com"
               value={form.email}
-              onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              onKeyPress={handleKeyPress}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, email: e.target.value }))
+              }
+              onKeyDown={handleKeyDown}
               className="mt-1"
             />
           </div>
@@ -106,11 +110,13 @@ export default function LoginPage() {
             <div className="relative mt-1">
               <Input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Your password"
                 value={form.password}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                onKeyPress={handleKeyPress}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, password: e.target.value }))
+                }
+                onKeyDown={handleKeyDown}
                 className="pr-10"
               />
               <button
@@ -118,7 +124,11 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>
@@ -128,7 +138,7 @@ export default function LoginPage() {
             disabled={isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 py-5"
           >
-            {isLoading ? 'Logging in...' : 'Login to Suraksha AI'}
+            {isLoading ? "Logging in..." : "Login to Suraksha AI"}
             {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
 
@@ -145,13 +155,16 @@ export default function LoginPage() {
           <Button
             variant="outline"
             onClick={() => {
-              localStorage.setItem('auth_token', 'demo-token')
-              localStorage.setItem('auth_user', JSON.stringify({
-                userId: 'demo-user',
-                email: 'demo@suraksha.ai',
-                name: 'Demo User'
-              }))
-              router.push('/dashboard')
+              localStorage.setItem("auth_token", "demo-token");
+              localStorage.setItem(
+                "auth_user",
+                JSON.stringify({
+                  userId: "demo-user",
+                  email: "demo@suraksha.ai",
+                  name: "Demo User",
+                }),
+              );
+              router.push("/dashboard");
             }}
             className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
           >
@@ -159,17 +172,16 @@ export default function LoginPage() {
           </Button>
 
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <button
-              onClick={() => router.push('/signup')}
+              onClick={() => router.push("/signup")}
               className="text-blue-600 font-medium hover:underline"
             >
               Sign up free
             </button>
           </p>
-
         </div>
       </div>
     </div>
-  )
+  );
 }
