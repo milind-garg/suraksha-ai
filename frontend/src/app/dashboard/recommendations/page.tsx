@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { RecommendationList } from '@/components/recommendations/RecommendationList';
 import { PeerComparisonWidget } from '@/components/recommendations/PeerComparisonWidget';
+import { RecommendationExportMenu } from '@/components/recommendations/RecommendationExportMenu';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function RecommendationsPage() {
@@ -187,7 +188,7 @@ export default function RecommendationsPage() {
 
       {/* Recommendations */}
       {recommendations && (
-        <div>
+        <div id="recommendations-export-container" className="space-y-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">Your Recommendations</h2>
@@ -223,6 +224,15 @@ export default function RecommendationsPage() {
             recommendations={recommendations.recommendations}
             isLoading={isLoading}
           />
+
+          {/* Export Menu */}
+          <div className="mt-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700">Share & Export</h3>
+              <p className="text-xs text-gray-500 mt-1">Download or share your recommendations</p>
+            </div>
+            <RecommendationExportMenu />
+          </div>
         </div>
       )}
 
