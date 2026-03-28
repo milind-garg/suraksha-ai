@@ -14,6 +14,8 @@ import { usePolicyStore } from '@/store/policy-store'
 import { useRecommendationStore } from '@/store/recommendation-store'
 import { useToast } from '@/hooks/use-toast'
 import { ProfileQuestionnaire } from '@/components/recommendations/ProfileQuestionnaire'
+import { updateUserProfile } from '@/lib/auth'
+import { formatPhoneNumber, validatePhoneNumber, formatPhoneForDisplay } from '@/lib/phone'
 import {
   User, Mail, Phone, Shield, FileText,
   TrendingUp, Edit2, Save, X, Award,
@@ -22,16 +24,18 @@ import {
 } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { user } = useAuthStore()
+  const { user, setUser } = useAuthStore()
   const { policies } = usePolicyStore()
   const { profile: recProfile, isProfileComplete } = useRecommendationStore()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [showRecommendationSection, setShowRecommendationSection] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [form, setForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
   })
+  const [phoneError, setPhoneError] = useState('')
 
   // Stats
   const analyzedPolicies = policies.filter(p => p.status === 'analyzed')
@@ -41,12 +45,48 @@ export default function ProfilePage() {
     sum + (p.analysisResult?.coverageGaps?.length || 0), 0
   )
 
-  const handleSave = () => {
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been saved successfully'
-    })
-    setIsEditing(false)
+  const handleSave = async () => {
+    // Validate phone if provided
+    if (form.phone && !validatePhoneNumber(form.phone)) {
+      setPhoneError('Please enter a valid 10-digit Indian phone number')
+      return
+    }
+
+    setIsSaving(true)
+    setPhoneError('')
+    try {
+      const updatedData: any = {}
+      if (form.name !== user?.name) updatedData.name = form.name
+      if (form.phone) updatedData.phone = formatPhoneNumber(form.phone)
+
+      await updateUserProfile(updatedData)
+
+      // Update local auth store
+      if (user) {
+        setUser(
+          {
+            ...user,
+            ...(form.name && { name: form.name }),
+            ...(form.phone && { phone: formatPhoneNumber(form.phone) }),
+          },
+          localStorage.getItem('auth_token') || ''
+        )
+      }
+
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile has been saved successfully',
+      })
+      setIsEditing(false)
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save profile',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const policyTypeCount = policies.reduce((acc, p) => {
@@ -143,11 +183,23 @@ export default function ProfilePage() {
                     </Button>
                   ) : (
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                      <Button
+                        size="sm"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
                         <Save className="h-4 w-4 mr-1" />
-                        Save
+                        {isSaving ? 'Saving...' : 'Save'}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setIsEditing(false)
+                          setPhoneError('')
+                        }}
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -184,15 +236,24 @@ export default function ProfilePage() {
                       <Phone className="h-3 w-3" /> Phone / फ़ोन
                     </Label>
                     {isEditing ? (
-                      <Input
-                        value={form.phone}
-                        onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                        placeholder="+91 98765 43210"
-                        className="mt-1"
-                      />
+                      <div>
+                        <Input
+                          value={form.phone}
+                          onChange={e => {
+                            setForm(p => ({ ...p, phone: e.target.value }))
+                            setPhoneError('') // Clear error on input
+                          }}
+                          placeholder="Enter 10-digit number (e.g., 98765 43210)"
+                          className="mt-1"
+                        />
+                        {phoneError && (
+                          <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Format: +91-XXXXX-XXXXX</p>
+                      </div>
                     ) : (
                       <p className="mt-1 font-medium text-gray-900">
-                        {user?.phone || 'Not added'}
+                        {user?.phone ? formatPhoneForDisplay(user.phone) : 'Not added'}
                       </p>
                     )}
                   </div>

@@ -101,3 +101,41 @@ export async function getAuthToken(): Promise<string | null> {
     return null
   }
 }
+
+// ─── Update User Profile ───────────────────────────────
+export async function updateUserProfile(userData: {
+  name?: string
+  phone?: string
+}): Promise<any> {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    const token = localStorage.getItem('auth_token')
+
+    // If demo token, just return success
+    if (token === 'demo-token') {
+      const user = JSON.parse(localStorage.getItem('auth_user') || '{}')
+      const updated = { ...user, ...userData }
+      localStorage.setItem('auth_user', JSON.stringify(updated))
+      return updated
+    }
+
+    // Update via API
+    const response = await fetch(`${apiUrl}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error || `Failed to update profile (${response.status})`)
+    }
+
+    return await response.json()
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to update profile')
+  }
+}
