@@ -230,9 +230,9 @@ export function ProfileQuestionnaire() {
                 className="w-full px-3 py-2 border rounded-md"
               >
                 <option value="">Select frequency</option>
-                <option value="low">Rarely (< once/month)</option>
+                <option value="low">Rarely (&lt; once/month)</option>
                 <option value="medium">Occasionally (1-4 times/month)</option>
-                <option value="high">Frequently (> once/week)</option>
+                <option value="high">Frequently (&gt; once/week)</option>
               </select>
             </div>
           </div>
