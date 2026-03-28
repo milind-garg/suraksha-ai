@@ -34,8 +34,9 @@ export default function DashboardLayout({
           setUser(
             {
               userId: userInfo.user.userId,
-              email: userInfo.user.username,
-              name: userInfo.user.username,
+              email: userInfo.user.email,
+              name: userInfo.user.name,
+              phone: userInfo.user.phone,
             },
             userInfo.token,
           );

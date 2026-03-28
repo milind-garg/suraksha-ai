@@ -70,7 +70,23 @@ export async function getCurrentUserInfo() {
     const user = await getCurrentUser()
     const session = await fetchAuthSession()
     const token = session.tokens?.idToken?.toString()
-    return { user, token }
+
+    // Extract user attributes from ID token claims
+    const claims = session.tokens?.idToken?.payload
+    const email = claims?.email || user.username
+    const name = claims?.name || claims?.email?.split('@')[0] || user.username
+    const phone = claims?.phone_number
+
+    return {
+      user: {
+        userId: user.userId,
+        username: user.username,
+        email,
+        name,
+        phone
+      },
+      token
+    }
   } catch {
     return null
   }

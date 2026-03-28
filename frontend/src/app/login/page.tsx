@@ -39,8 +39,9 @@ export default function LoginPage() {
         setUser(
           {
             userId: user.userId,
-            email: form.email,
-            name: user.username || form.email.split("@")[0],
+            email: user.email,
+            name: user.name,
+            phone: user.phone,
           },
           token,
         );
