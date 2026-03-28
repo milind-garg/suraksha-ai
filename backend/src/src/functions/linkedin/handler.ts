@@ -1,0 +1,297 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import {
+  DynamoDBClient,
+  UpdateCommand,
+} from "@aws-sdk/client-dynamodb";
+import { marshall } from "@aws-sdk/util-dynamodb";
+
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION || "ap-south-1",
+});
+
+const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
+
+// ─── Salary Bands Lookup ───────────────────────────────
+const SALARY_LOOKUP: {
+  [industry: string]: {
+    [jobTitle: string]: {
+      [exp: string]: { min: number; max: number };
+    };
+  };
+} = {
+  IT: {
+    "Software Engineer": {
+      "0-3": { min: 400000, max: 800000 },
+      "3-5": { min: 800000, max: 1300000 },
+      "5-8": { min: 1300000, max: 2000000 },
+      "8+": { min: 1800000, max: 3500000 },
+    },
+    Manager: {
+      "0-3": { min: 600000, max: 1000000 },
+      "3-5": { min: 1000000, max: 1500000 },
+      "5-8": { min: 1500000, max: 2500000 },
+      "8+": { min: 2200000, max: 4500000 },
+    },
+    "Senior Engineer": {
+      "5-8": { min: 1500000, max: 2500000 },
+      "8+": { min: 2200000, max: 4000000 },
+    },
+  },
+  Finance: {
+    Manager: {
+      "0-3": { min: 600000, max: 1000000 },
+      "3-5": { min: 1000000, max: 1500000 },
+      "5-8": { min: 1200000, max: 2000000 },
+      "8+": { min: 1800000, max: 3500000 },
+    },
+    Analyst: {
+      "0-3": { min: 350000, max: 700000 },
+      "3-5": { min: 700000, max: 1200000 },
+      "5-8": { min: 1000000, max: 1800000 },
+      "8+": { min: 1500000, max: 3000000 },
+    },
+  },
+  Healthcare: {
+    Doctor: {
+      "0-3": { min: 800000, max: 1500000 },
+      "3-5": { min: 1200000, max: 2500000 },
+      "5-8": { min: 1800000, max: 3500000 },
+      "8+": { min: 2500000, max: 5000000 },
+    },
+    Nurse: {
+      "0-3": { min: 300000, max: 600000 },
+      "3-5": { min: 500000, max: 1000000 },
+      "5-8": { min: 800000, max: 1500000 },
+      "8+": { min: 1200000, max: 2200000 },
+    },
+  },
+  Manufacturing: {
+    "Production Manager": {
+      "0-3": { min: 400000, max: 700000 },
+      "3-5": { min: 700000, max: 1200000 },
+      "5-8": { min: 1000000, max: 1800000 },
+      "8+": { min: 1500000, max: 2800000 },
+    },
+  },
+  Education: {
+    Teacher: {
+      "0-3": { min: 250000, max: 450000 },
+      "3-5": { min: 400000, max: 700000 },
+      "5-8": { min: 600000, max: 1000000 },
+      "8+": { min: 900000, max: 1600000 },
+    },
+    Professor: {
+      "5-8": { min: 800000, max: 1400000 },
+      "8+": { min: 1200000, max: 2200000 },
+    },
+  },
+};
+
+// ─── CORS Headers ──────────────────────────────────────
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  console.log("Event:", JSON.stringify(event, null, 2));
+
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ message: "OK" }),
+    };
+  }
+
+  try {
+    const userId =
+      event.requestContext?.authorizer?.claims?.sub || "demo-user";
+
+    if (event.httpMethod === "POST" && event.body) {
+      return await analyzeLinkedIn(userId, event.body);
+    }
+
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid request" }),
+    };
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "Internal server error",
+        message: error.message,
+      }),
+    };
+  }
+};
+
+// ─── Analyze LinkedIn Profile ──────────────────────────
+async function analyzeLinkedIn(
+  userId: string,
+  body: string
+): Promise<APIGatewayProxyResult> {
+  try {
+    const { linkedinUrl } = JSON.parse(body);
+
+    if (!linkedinUrl) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "LinkedIn URL is required" }),
+      };
+    }
+
+    // Parse LinkedIn URL to extract profile info
+    // In production, you'd use a LinkedIn scraper like linkedin-profile-scraper
+    // For MVP, we'll simulate extraction from the URL pattern
+
+    const profileData = extractLinkedInData(linkedinUrl);
+
+    if (!profileData) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Invalid LinkedIn URL or profile" }),
+      };
+    }
+
+    // Infer salary band based on job title, industry, and experience
+    const salaryBand = inferSalaryBand(
+      profileData.jobTitle,
+      profileData.industry,
+      profileData.experienceYears
+    );
+
+    // Store in DynamoDB
+    const updateParams = {
+      TableName: USERS_TABLE,
+      Key: marshall({ userId }),
+      UpdateExpression:
+        "SET linkedinData = :linkedin, #ts = :timestamp, linkedinSalaryEstimate = :salary",
+      ExpressionAttributeNames: {
+        "#ts": "updatedAt",
+      },
+      ExpressionAttributeValues: marshall({
+        ":linkedin": {
+          profileUrl: linkedinUrl,
+          jobTitle: profileData.jobTitle,
+          company: profileData.company,
+          industry: profileData.industry,
+          experienceYears: profileData.experienceYears,
+          extractedAt: new Date().toISOString(),
+        },
+        ":salary": salaryBand,
+        ":timestamp": new Date().toISOString(),
+      }),
+      ReturnValues: "ALL_NEW",
+    };
+
+    await client.send(new UpdateCommand(updateParams));
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        success: true,
+        data: {
+          linkedinData: profileData,
+          salaryEstimate: salaryBand,
+          message: "LinkedIn profile analyzed successfully",
+        },
+      }),
+    };
+  } catch (error: any) {
+    console.error("Error analyzing LinkedIn:", error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "Failed to analyze LinkedIn profile",
+        message: error.message,
+      }),
+    };
+  }
+}
+
+// ─── Extract LinkedIn Data from URL ─────────────────
+interface LinkedInData {
+  jobTitle: string;
+  company: string;
+  industry: string;
+  experienceYears: number;
+}
+
+function extractLinkedInData(linkedinUrl: string): LinkedInData | null {
+  // This is a simplified mock implementation
+  // In a real application, you'd use a scraper or LinkedIn API
+  // For now, return sample data structure
+
+  if (!linkedinUrl.includes("linkedin.com")) {
+    return null;
+  }
+
+  // Mock data - in production, scrape the actual profile
+  return {
+    jobTitle: "Software Engineer",
+    company: "Tech Company",
+    industry: "IT",
+    experienceYears: 5,
+  };
+}
+
+// ─── Infer Salary Band from Profile ────────────────
+interface SalaryBand {
+  min: number;
+  max: number;
+  currency: string;
+}
+
+function inferSalaryBand(
+  jobTitle: string,
+  industry: string,
+  experienceYears: number
+): SalaryBand {
+  const industryData = SALARY_LOOKUP[industry];
+
+  if (!industryData) {
+    return { min: 500000, max: 1500000, currency: "INR" };
+  }
+
+  const jobData = industryData[jobTitle];
+
+  if (!jobData) {
+    // Try partial match
+    for (const [key, value] of Object.entries(industryData)) {
+      if (jobTitle.includes(key) || key.includes(jobTitle)) {
+        return {
+          min: Object.values(value)[Object.values(value).length - 1].min,
+          max: Object.values(value)[Object.values(value).length - 1].max,
+          currency: "INR",
+        };
+      }
+    }
+    return { min: 500000, max: 1500000, currency: "INR" };
+  }
+
+  // Determine experience bracket
+  let expBracket = "0-3";
+  if (experienceYears > 8) expBracket = "8+";
+  else if (experienceYears > 5) expBracket = "5-8";
+  else if (experienceYears > 3) expBracket = "3-5";
+
+  const salary = jobData[expBracket] || jobData["8+"] || jobData["0-3"];
+
+  return {
+    min: salary.min,
+    max: salary.max,
+    currency: "INR",
+  };
+}

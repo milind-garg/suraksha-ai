@@ -95,3 +95,83 @@ Respond with ONLY this JSON structure (no markdown, no extra text):
 
   return await invokeClaude(prompt, systemPrompt, 4096);
 }
+
+// ─── Generate policy recommendations ───────────────────
+export async function generateUserRecommendations(
+  userProfile: {
+    age: number;
+    familySize: number;
+    dependents: number;
+    maritalStatus: string;
+    annualIncome: number;
+    jobTitle: string;
+    industry: string;
+    occupationalRisk: string;
+    healthStatus: string;
+    goals: string;
+  },
+  existingPolicies: Array<{
+    policyType: string;
+    sumInsured: number;
+    policyName: string;
+    endDate: string;
+  }>,
+  peerMetrics: {
+    avgHealthCoverage: number;
+    avgLifeInsurance: number;
+    percentile: number;
+  },
+): Promise<string> {
+  const systemPrompt = `You are Suraksha AI, an expert insurance advisor for Indian families.
+Based on the user's profile, existing coverage, and peer benchmarks, provide 5-7 specific policy recommendations.
+Consider: life stage, income, family responsibilities, occupation risks, and peer benchmarks.
+Be specific, actionable, and use simple Indian terms.
+Always respond with valid JSON only—no markdown, no extra text.`;
+
+  const policiesList =
+    existingPolicies.length > 0
+      ? existingPolicies.map((p) => `- ${p.policyType}: ₹${p.sumInsured} (Expires: ${p.endDate})`).join('\n')
+      : '- No existing policies';
+
+  const prompt = `You are recommending insurance policies to an Indian family.
+
+User Profile:
+- Age: ${userProfile.age} years
+- Family Size: ${userProfile.familySize} members (${userProfile.dependents} dependents)
+- Annual Income: ₹${userProfile.annualIncome}
+- Job Title: ${userProfile.jobTitle}
+- Industry: ${userProfile.industry}
+- Occupational Risk Level: ${userProfile.occupationalRisk}
+- Health Status: ${userProfile.healthStatus}
+- Primary Goals: ${userProfile.goals}
+- Marital Status: ${userProfile.maritalStatus}
+
+Current Coverage:
+${policiesList}
+
+Peer Benchmarks (Similar Age/Income/Occupation):
+- Average Health Coverage: ₹${peerMetrics.avgHealthCoverage}
+- Average Life Insurance: ₹${peerMetrics.avgLifeInsurance}
+- User's Percentile Coverage Rank: ${peerMetrics.percentile}%
+
+Provide recommendations as JSON only (no markdown, no extra text):
+{
+  "recommendations": [
+    {
+      "type": "New Policy" | "Coverage Enhancement" | "Risk Mitigation" | "Peer Comparison",
+      "priority": "High" | "Medium" | "Low",
+      "category": "health" | "life" | "vehicle" | "home" | "travel" | "other",
+      "title": "Specific recommendation title",
+      "description": "Why this matters for this person's situation (2-3 sentences)",
+      "suggestedCoverage": "Suggested coverage amount in Indian rupees",
+      "estimatedPremium": "Estimated annual premium range (use realistic Indian premium rates)",
+      "relevanceForIndians": "Hindi/Hinglish reasoning that resonates with Indian families"
+    }
+  ],
+  "overallRiskScore": 65,
+  "riskAssessment": "Summary of identifying coverage gaps and risks",
+  "actionNextSteps": "Specific action items for next 30 days"
+}`;
+
+  return await invokeClaude(prompt, systemPrompt, 4096);
+}
