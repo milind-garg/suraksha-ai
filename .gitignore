@@ -1,42 +1,36 @@
 # Dependencies
 node_modules/
-.npm
+.pnp
+.pnp.js
 
-# Next.js
-frontend/.next/
-frontend/out/
-frontend/build/
+# Testing
+coverage/
 
-# Backend build
-backend/dist/
+# Production
+dist/
+build/
+.next/
+out/
 
-# Environment variables - NEVER commit these!
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-frontend/.env
-frontend/.env.local
-backend/.env
 
-# AWS
-.aws/
-*.pem
-*credentials*.csv
-
-# Logs
-logs/
-*.log
-npm-debug.log*
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/settings.json
-.idea/
-
-# CDK
-infrastructure/cdk.out/
+# Documentation/Assets (avoid large files)
+*.docx
+*.xlsx
+*.pptx
