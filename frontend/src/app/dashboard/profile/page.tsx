@@ -1,26 +1,33 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/page-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuthStore } from '@/store/auth-store'
 import { usePolicyStore } from '@/store/policy-store'
+import { useRecommendationStore } from '@/store/recommendation-store'
 import { useToast } from '@/hooks/use-toast'
+import { ProfileQuestionnaire } from '@/components/recommendations/ProfileQuestionnaire'
 import {
   User, Mail, Phone, Shield, FileText,
   TrendingUp, Edit2, Save, X, Award,
-  IndianRupee, AlertTriangle
+  IndianRupee, AlertTriangle, ChevronDown, ChevronUp,
+  Lightbulb, CheckCircle2
 } from 'lucide-react'
 
 export default function ProfilePage() {
   const { user } = useAuthStore()
   const { policies } = usePolicyStore()
+  const { profile: recProfile, isProfileComplete } = useRecommendationStore()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
+  const [showRecommendationSection, setShowRecommendationSection] = useState(false)
   const [form, setForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -270,6 +277,120 @@ export default function ProfilePage() {
             </Card>
 
           </div>
+        </div>
+
+        {/* Recommendation Profile Section */}
+        <div className="mt-8">
+          <Card className="border-0 shadow-sm">
+            <CardHeader
+              className="pb-2 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => setShowRecommendationSection(!showRecommendationSection)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-purple-600" />
+                  Recommendation Profile / सुझाव प्रोफाइल
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {isProfileComplete() && (
+                    <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Complete
+                    </Badge>
+                  )}
+                  {showRecommendationSection ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+
+            {showRecommendationSection && (
+              <CardContent className="space-y-4">
+                {!isProfileComplete() ? (
+                  <div>
+                    <p className="text-gray-600 mb-4">
+                      Build your recommendation profile to get personalized insurance policy suggestions.
+                    </p>
+                    <ProfileQuestionnaire />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Alert className="bg-green-50 border-green-200">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        Your recommendation profile is complete! You can now get personalized recommendations.
+                      </AlertDescription>
+                    </Alert>
+
+                    {/* Profile Summary */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 font-semibold">Age</p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">{recProfile?.age} yrs</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 font-semibold">Family Size</p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">{recProfile?.familySize} members</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 font-semibold">Income</p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">
+                          ₹{(recProfile?.annualIncome ? recProfile.annualIncome / 100000 : 0).toFixed(1)}L
+                        </p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 col-span-2 sm:col-span-1">
+                        <p className="text-xs text-gray-500 font-semibold">Job Title</p>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{recProfile?.jobTitle}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 col-span-2 sm:col-span-1">
+                        <p className="text-xs text-gray-500 font-semibold">Industry</p>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{recProfile?.industry}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 col-span-2 sm:col-span-1">
+                        <p className="text-xs text-gray-500 font-semibold">Health</p>
+                        <p className="text-sm font-bold text-gray-900 mt-1 capitalize">
+                          {recProfile?.healthStatus}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-semibold mb-1">Goals</p>
+                      <p className="text-sm text-gray-700">{recProfile?.goals}</p>
+                    </div>
+
+                    {recProfile?.linkedinUrl && (
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p className="text-xs text-gray-500 font-semibold mb-1">LinkedIn Profile</p>
+                        <p className="text-sm text-blue-600 truncate">{recProfile.linkedinUrl}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={() => setShowRecommendationSection(false)}
+                        className="flex-1"
+                        asChild
+                      >
+                        <Link href="/dashboard/recommendations">
+                          Get Recommendations →
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowRecommendationSection(true)}
+                      >
+                        Edit Profile
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
         </div>
 
       </div>

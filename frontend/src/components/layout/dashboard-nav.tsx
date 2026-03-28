@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Shield, LayoutDashboard, FileText, LogOut, Upload, User, AlertTriangle } from 'lucide-react'
+import { Shield, LayoutDashboard, FileText, LogOut, Upload, User, AlertTriangle, Lightbulb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/lib/auth'
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/dashboard/upload', label: 'Upload Policy', labelHindi: 'अपलोड', icon: Upload },
   { href: '/dashboard/policies', label: 'My Policies', labelHindi: 'पॉलिसी', icon: FileText },
   { href: '/dashboard/gap-analysis', label: 'Gap Analysis', labelHindi: 'गैप विश्लेषण', icon: AlertTriangle },
+  { href: '/dashboard/recommendations', label: 'Recommendations', labelHindi: 'सुझाव', icon: Lightbulb },
   { href: '/dashboard/profile', label: 'Profile', labelHindi: 'प्रोफाइल', icon: User },
 ]
 

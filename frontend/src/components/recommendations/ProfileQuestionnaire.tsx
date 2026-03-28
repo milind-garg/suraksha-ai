@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRecommendationStore } from '@/store/recommendation-store';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 export function ProfileQuestionnaire() {
-  const { profile, updateProfile, setIsLoading, setError } = useRecommendationStore();
+  const { profile, updateProfile, setIsLoading, setError, isLoading, error } = useRecommendationStore();
   const [step, setStep] = useState(1);
   const [localProfile, setLocalProfile] = useState(profile || {});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleInputChange = (field: string, value: any) => {
     setLocalProfile({ ...localProfile, [field]: value });
@@ -34,19 +37,32 @@ export function ProfileQuestionnaire() {
       try {
         updateProfile(localProfile);
         // Save to backend
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/profile-questionnaire`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const token = localStorage.getItem('auth_token');
+
+        if (!token) {
+          setError('Authentication required. Please log in.');
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${apiUrl}/users/profile-questionnaire`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(localProfile),
         });
 
-        if (!response.ok) throw new Error('Failed to save profile');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to save profile (${response.status})`);
+        }
 
         setError(null);
       } catch (err: any) {
+        console.error('Profile save error:', err);
         setError(err.message || 'Failed to save profile');
       } finally {
         setIsLoading(false);
@@ -302,8 +318,11 @@ export function ProfileQuestionnaire() {
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!validateStep(step)}>
-              Complete Profile
+            <Button
+              onClick={handleSubmit}
+              disabled={!validateStep(step) || isLoading}
+            >
+              {isLoading ? 'Saving...' : 'Complete Profile'}
             </Button>
           )}
         </div>
