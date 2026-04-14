@@ -56,6 +56,7 @@ export interface PeerMetrics {
     avgHomeInsurance: number;
     percentile: number;
     sampleSize: number;
+    isEstimate?: boolean;
   };
   insights: string[];
 }

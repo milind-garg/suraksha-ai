@@ -27,7 +27,7 @@ export function RecommendationExportMenu() {
   const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
 
-  if (!recommendations || recommendations.length === 0) {
+  if (!recommendations || recommendations.recommendations.length === 0) {
     return null
   }
 
@@ -57,8 +57,8 @@ export function RecommendationExportMenu() {
       exportRecommendationsAsJSON(
         {
           generatedAt: new Date().toISOString(),
-          recommendations,
-          summary: generateRecommendationSummary(recommendations),
+          recommendations: recommendations.recommendations,
+          summary: generateRecommendationSummary(recommendations.recommendations),
         },
         `suraksha-recommendations-${new Date().toISOString().split('T')[0]}.json`
       )
@@ -78,7 +78,7 @@ export function RecommendationExportMenu() {
   const handleCSVExport = () => {
     try {
       exportRecommendationsAsCSV(
-        recommendations,
+        recommendations.recommendations,
         `suraksha-recommendations-${new Date().toISOString().split('T')[0]}.csv`
       )
       toast({

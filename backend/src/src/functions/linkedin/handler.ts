@@ -180,6 +180,7 @@ async function analyzeLinkedIn(
           industry: profileData.industry,
           experienceYears: profileData.experienceYears,
           extractedAt: new Date().toISOString(),
+          isSimulated: true,
         },
         ":salary": salaryBand,
         ":timestamp": new Date().toISOString(),
@@ -194,9 +195,9 @@ async function analyzeLinkedIn(
       body: JSON.stringify({
         success: true,
         data: {
-          linkedinData: profileData,
+          linkedinData: { ...profileData, isSimulated: true },
           salaryEstimate: salaryBand,
-          message: "LinkedIn profile analyzed successfully",
+          message: "LinkedIn profile analyzed successfully (simulated data — real scraping not yet implemented)",
         },
       }),
     };
@@ -246,6 +247,13 @@ interface SalaryBand {
   currency: string;
 }
 
+function getExpBracket(experienceYears: number): string {
+  if (experienceYears >= 8) return "8+";
+  if (experienceYears >= 5) return "5-8";
+  if (experienceYears >= 3) return "3-5";
+  return "0-3";
+}
+
 function inferSalaryBand(
   jobTitle: string,
   industry: string,
@@ -263,21 +271,16 @@ function inferSalaryBand(
     // Try partial match
     for (const [key, value] of Object.entries(industryData)) {
       if (jobTitle.includes(key) || key.includes(jobTitle)) {
-        return {
-          min: Object.values(value)[Object.values(value).length - 1].min,
-          max: Object.values(value)[Object.values(value).length - 1].max,
-          currency: "INR",
-        };
+        const bracket = getExpBracket(experienceYears);
+        const band = value[bracket] ?? value["8+"] ?? value["0-3"];
+        return { min: band.min, max: band.max, currency: "INR" };
       }
     }
     return { min: 500000, max: 1500000, currency: "INR" };
   }
 
   // Determine experience bracket
-  let expBracket = "0-3";
-  if (experienceYears > 8) expBracket = "8+";
-  else if (experienceYears > 5) expBracket = "5-8";
-  else if (experienceYears > 3) expBracket = "3-5";
+  const expBracket = getExpBracket(experienceYears);
 
   const salary = jobData[expBracket] || jobData["8+"] || jobData["0-3"];
 

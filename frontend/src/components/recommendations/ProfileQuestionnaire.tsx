@@ -8,13 +8,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
+function parseIntSafe(value: string): number | undefined {
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? undefined : parsed;
+}
+
 export function ProfileQuestionnaire() {
   const { profile, updateProfile, setIsLoading, setError, isLoading, error } = useRecommendationStore();
   const [step, setStep] = useState(1);
   const [localProfile, setLocalProfile] = useState(profile || {});
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean | undefined) => {
     setLocalProfile({ ...localProfile, [field]: value });
   };
 
@@ -103,7 +108,7 @@ export function ProfileQuestionnaire() {
                 min="18"
                 max="100"
                 value={localProfile.age || ''}
-                onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('age', parseIntSafe(e.target.value))}
                 placeholder="Enter your age"
               />
             </div>
@@ -113,7 +118,7 @@ export function ProfileQuestionnaire() {
                 type="number"
                 min="1"
                 value={localProfile.familySize || ''}
-                onChange={(e) => handleInputChange('familySize', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('familySize', parseIntSafe(e.target.value))}
                 placeholder="Total members including you"
               />
             </div>
@@ -123,7 +128,7 @@ export function ProfileQuestionnaire() {
                 type="number"
                 min="0"
                 value={localProfile.dependents || ''}
-                onChange={(e) => handleInputChange('dependents', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('dependents', parseIntSafe(e.target.value))}
                 placeholder="Children, elderly parents, etc."
               />
             </div>
@@ -153,7 +158,7 @@ export function ProfileQuestionnaire() {
               <Input
                 type="number"
                 value={localProfile.annualIncome || ''}
-                onChange={(e) => handleInputChange('annualIncome', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('annualIncome', parseIntSafe(e.target.value))}
                 placeholder="Enter annual income"
               />
             </div>
@@ -162,7 +167,7 @@ export function ProfileQuestionnaire() {
               <Input
                 type="number"
                 value={localProfile.monthlyExpenses || ''}
-                onChange={(e) => handleInputChange('monthlyExpenses', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('monthlyExpenses', parseIntSafe(e.target.value))}
                 placeholder="Average monthly expenses"
               />
             </div>
@@ -171,7 +176,7 @@ export function ProfileQuestionnaire() {
               <Input
                 type="number"
                 value={localProfile.savingsAmount || ''}
-                onChange={(e) => handleInputChange('savingsAmount', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('savingsAmount', parseIntSafe(e.target.value))}
                 placeholder="Current savings/emergency fund"
               />
             </div>
@@ -259,10 +264,14 @@ export function ProfileQuestionnaire() {
             <div>
               <label className="block text-sm font-medium mb-1">Do you smoke?</label>
               <select
-                value={localProfile.smokingStatus ? 'yes' : 'no'}
-                onChange={(e) => handleInputChange('smokingStatus', e.target.value === 'yes')}
+                value={localProfile.smokingStatus === undefined ? '' : localProfile.smokingStatus ? 'yes' : 'no'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleInputChange('smokingStatus', val === '' ? undefined : val === 'yes');
+                }}
                 className="w-full px-3 py-2 border rounded-md"
               >
+                <option value="">Select an option</option>
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
               </select>
@@ -297,7 +306,7 @@ export function ProfileQuestionnaire() {
                 min="40"
                 max="80"
                 value={localProfile.retirementAge || ''}
-                onChange={(e) => handleInputChange('retirementAge', parseInt(e.target.value))}
+                onChange={(e) => handleInputChange('retirementAge', parseIntSafe(e.target.value))}
                 placeholder="When do you plan to retire?"
               />
             </div>
