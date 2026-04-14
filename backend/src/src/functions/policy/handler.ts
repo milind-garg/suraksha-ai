@@ -1,16 +1,17 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { getPolicy, getUserPolicies, deletePolicy } from "../../lib/dynamodb";
 import { deleteS3Object, generateDownloadUrl } from "../../lib/s3";
-import { getCorsHeaders } from "../../lib/cors";
+import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
 
 // ─── GET /policies ────────────────────────────────────
 export const listPolicies = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers: corsHeaders, body: "" };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;
@@ -44,10 +45,11 @@ export const listPolicies = async (
 export const getPolicyById = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers: corsHeaders, body: "" };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;
@@ -87,15 +89,17 @@ export const getPolicyById = async (
       };
     }
 
-    // Generate download URL if S3 key exists
+    // Generate download URL if S3 key exists.
+    // Spread into a new object so the DynamoDB Item reference is not mutated.
+    const responseData = { ...policy }
     if (policy.s3Key) {
-      policy.documentUrl = await generateDownloadUrl(policy.s3Key);
+      responseData.documentUrl = await generateDownloadUrl(policy.s3Key);
     }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ success: true, data: policy }),
+      body: JSON.stringify({ success: true, data: responseData }),
     };
   } catch (error: unknown) {
     console.error("getPolicyById error:", error);
@@ -111,10 +115,11 @@ export const getPolicyById = async (
 export const deletePolicyById = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers: corsHeaders, body: "" };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;

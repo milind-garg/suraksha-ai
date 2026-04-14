@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getAuthToken } from '@/lib/auth';
+import { generateRecommendations, getPeerComparison } from '@/lib/api';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { RecommendationList } from '@/components/recommendations/RecommendationList';
 import { PeerComparisonWidget } from '@/components/recommendations/PeerComparisonWidget';
@@ -43,42 +43,20 @@ export default function RecommendationsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
-      // Generate recommendations
-      const recResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recommendations/generate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!recResponse.ok) throw new Error('Failed to generate recommendations');
-
-      const recData = await recResponse.json();
+      // Use the configured axios client — it injects the auth token automatically.
+      const recData = await generateRecommendations();
       setRecommendations(recData.data);
 
-      // Get peer comparison
-      const peerResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recommendations/peer-comparison`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (peerResponse.ok) {
-        const peerData = await peerResponse.json();
+      try {
+        const peerData = await getPeerComparison();
         setPeerMetrics(peerData.data);
+      } catch {
+        // Peer comparison is non-critical; swallow errors silently.
       }
 
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate recommendations');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate recommendations');
     } finally {
       setIsLoading(false);
     }

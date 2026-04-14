@@ -27,14 +27,14 @@ export function formatPhoneNumber(phone: string): string {
 }
 
 /**
- * Validate Indian phone number (10 digits)
+ * Validate Indian phone number (10 digits, must start with 6-9)
  */
 export function validatePhoneNumber(phone: string): boolean {
   const digits = phone.replace(/\D/g, '');
 
-  // Allow 10 digits (without country code) or 12 digits (with 91)
-  if (digits.length === 10) return true;
-  if (digits.length === 12 && digits.startsWith('91')) return true;
+  // Indian mobile numbers are 10 digits starting with 6, 7, 8 or 9.
+  if (digits.length === 10) return /^[6-9]/.test(digits);
+  if (digits.length === 12 && digits.startsWith('91')) return /^91[6-9]/.test(digits);
 
   return false;
 }

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { usePolicyStore } from '@/store/policy-store'
 import { useAuthStore } from '@/store/auth-store'
+import { getUploadUrl, uploadFileToS3 } from '@/lib/api'
 import {
   Upload, FileText, X, CheckCircle,
   AlertCircle, Shield, Brain, ArrowRight
@@ -94,47 +95,39 @@ export default function UploadPage() {
     return
   }
 
+  // Validate date range
+  if (form.startDate && form.endDate && form.endDate <= form.startDate) {
+    toast({
+      title: 'Invalid Dates',
+      description: 'End date must be after start date',
+      variant: 'destructive'
+    })
+    return
+  }
+
   setStep('uploading')
   setUploadProgress(0)
 
   try {
-    const policyId = uuidv4()
     const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    const isDemoMode = !apiUrl || apiUrl === 'PLACEHOLDER'
 
-    if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+    if (!isDemoMode) {
       // ── REAL API FLOW ──────────────────────────────
+      // Use the configured axios client (handles auth token automatically).
       setUploadProgress(10)
 
-      // Get presigned URL from Lambda
-      const token = sessionStorage.getItem('auth_token')
-      const urlResponse = await fetch(`${apiUrl}/upload/presigned-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && token !== 'demo-token' ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          policyName: form.policyName,
-          policyType: form.policyType,
-          insurerName: form.insurerName,
-          policyNumber: form.policyNumber,
-          premiumAmount: parseFloat(form.premiumAmount) || 0,
-          sumInsured: parseFloat(form.sumInsured) || 0,
-          startDate: form.startDate,
-          endDate: form.endDate,
-        })
+      const { uploadUrl, policyId: realPolicyId, s3Key } = await getUploadUrl({
+        fileName: file.name,
+        fileType: file.type,
+        policyName: form.policyName,
+        policyType: form.policyType,
       })
-
-      const { uploadUrl, policyId: realPolicyId, s3Key } = await urlResponse.json()
       setUploadProgress(30)
 
-      // Upload to S3
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
+      // Upload directly to S3 via presigned URL (no auth header needed for S3)
+      await uploadFileToS3(uploadUrl, file, (percent) => {
+        setUploadProgress(30 + Math.round(percent * 0.7))
       })
 
       setUploadProgress(100)
@@ -159,12 +152,13 @@ export default function UploadPage() {
 
     } else {
       // ── DEMO FLOW ──────────────────────────────────
+      const demoPolicyId = uuidv4()
       for (let i = 0; i <= 100; i += 10) {
         await new Promise(r => setTimeout(r, 150))
         setUploadProgress(i)
       }
       const newPolicy = {
-        policyId,
+        policyId: demoPolicyId,
         userId: user?.userId || 'demo-user',
         policyName: form.policyName,
         policyType: form.policyType,
@@ -175,20 +169,20 @@ export default function UploadPage() {
         startDate: form.startDate,
         endDate: form.endDate,
         status: 'uploaded' as const,
-        s3Key: `demo/${policyId}/${file.name}`,
+        s3Key: `demo/${demoPolicyId}/${file.name}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
       addPolicy(newPolicy)
-      setUploadedPolicyId(policyId)
+      setUploadedPolicyId(demoPolicyId)
     }
 
     setStep('success')
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     toast({
       title: 'Upload Failed',
-      description: error.message || 'Something went wrong',
+      description: error instanceof Error ? error.message : 'Something went wrong',
       variant: 'destructive'
     })
     setStep('details')
@@ -451,10 +445,10 @@ export default function UploadPage() {
             </div>
             <div className="bg-blue-50 rounded-xl p-4 max-w-sm mx-auto text-left space-y-2">
               {[
-                { done: uploadProgress >= 30, text: 'Uploading document to secure storage' },
-                { done: uploadProgress >= 60, text: 'Running OCR text extraction' },
-                { done: uploadProgress >= 90, text: 'Preparing AI analysis' },
-                { done: uploadProgress >= 100, text: 'Analysis complete!' },
+                { done: uploadProgress >= 30, text: 'Connecting to upload service' },
+                { done: uploadProgress >= 60, text: 'Uploading document to secure storage' },
+                { done: uploadProgress >= 90, text: 'Finalising upload' },
+                { done: uploadProgress >= 100, text: 'Upload complete! Ready for AI analysis.' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   {item.done

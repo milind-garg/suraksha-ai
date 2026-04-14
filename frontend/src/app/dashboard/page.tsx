@@ -32,10 +32,13 @@ export default function DashboardPage() {
   const analyzedPolicies = policies.filter(p => p.status === 'analyzed')
   const totalCoverage = policies.reduce((sum, p) => sum + (p.sumInsured || 0), 0)
   const totalPremium = policies.reduce((sum, p) => sum + (p.premiumAmount || 0), 0)
-  const avgClaimProbability = analyzedPolicies.length > 0
-    ? Math.round(analyzedPolicies.reduce((sum, p) =>
+  const analyzedWithProbability = analyzedPolicies.filter(
+    p => (p.analysisResult?.claimSuccessProbability ?? 0) > 0
+  )
+  const avgClaimProbability = analyzedWithProbability.length > 0
+    ? Math.round(analyzedWithProbability.reduce((sum, p) =>
         sum + (p.analysisResult?.claimSuccessProbability || 0), 0
-      ) / analyzedPolicies.length)
+      ) / analyzedWithProbability.length)
     : 0
   const totalGaps = analyzedPolicies.reduce((sum, p) =>
     sum + (p.analysisResult?.coverageGaps?.length || 0), 0

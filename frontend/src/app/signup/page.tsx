@@ -29,7 +29,7 @@ export default function SignupPage() {
   })
   const [otp, setOtp] = useState('')
 
-  const updateForm = (field: string, value: string) => {
+  const updateForm = (field: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -57,10 +57,10 @@ export default function SignupPage() {
         title: 'OTP Sent!',
         description: `Verification code sent to ${form.email}`
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Registration Failed',
-        description: error.message || 'Something went wrong',
+        description: error instanceof Error ? error.message : 'Something went wrong',
         variant: 'destructive'
       })
     } finally {
@@ -83,10 +83,10 @@ export default function SignupPage() {
         description: 'Your account is verified. Please login.'
       })
       router.push('/login')
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Invalid OTP',
-        description: error.message || 'Wrong code, try again',
+        description: error instanceof Error ? error.message : 'Wrong code, try again',
         variant: 'destructive'
       })
     } finally {
@@ -99,8 +99,8 @@ export default function SignupPage() {
     try {
       await resendOTP(email)
       toast({ title: 'OTP Resent', description: 'Check your email again' })
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' })
+    } catch (error: unknown) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to resend', variant: 'destructive' })
     }
   }
 

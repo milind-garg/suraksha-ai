@@ -51,15 +51,18 @@ export default function LoginPage() {
         });
         router.push("/dashboard");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       let message = "Login failed. Please try again.";
-      if (error.name === "NotAuthorizedException") {
-        message = "Wrong email or password";
-      } else if (error.name === "UserNotConfirmedException") {
-        message = "Please verify your email first";
-        router.push("/signup");
-      } else if (error.name === "UserNotFoundException") {
-        message = "No account found with this email";
+      if (error instanceof Error) {
+        const name = (error as any).name as string | undefined
+        if (name === "NotAuthorizedException") {
+          message = "Wrong email or password";
+        } else if (name === "UserNotConfirmedException") {
+          message = "Please verify your email first";
+          router.push("/signup");
+        } else if (name === "UserNotFoundException") {
+          message = "No account found with this email";
+        }
       }
       toast({
         title: "Login Failed",

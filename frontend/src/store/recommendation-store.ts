@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface UserRecommendationProfile {
   age: number;
@@ -181,7 +181,12 @@ export const useRecommendationStore = create<RecommendationStore>()(
       },
     }),
     {
-      name: 'suraksha-recommendations', // LocalStorage key
+      name: 'suraksha-recommendations',
+      // Use sessionStorage so sensitive profile data (income, health status,
+      // smoking status, etc.) does not persist across browser sessions.
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? sessionStorage : localStorage
+      ),
       partialize: (state) => ({
         profile: state.profile,
         linkedinData: state.linkedinData,

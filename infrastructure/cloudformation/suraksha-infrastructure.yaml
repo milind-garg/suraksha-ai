@@ -9,6 +9,15 @@ Parameters:
   ProjectName:
     Type: String
     Default: suraksha-ai
+  FrontendDomain:
+    Type: String
+    Default: ''
+    Description: >
+      Exact frontend origin domain (e.g. app.example.com).
+      Leave blank for non-prod environments to allow all CORS origins.
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
 
 Resources:
 
@@ -23,7 +32,13 @@ Resources:
         CorsRules:
           - AllowedHeaders: ['*']
             AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
-            AllowedOrigins: ['*']
+            # Replace with your frontend's exact origin (e.g. 'https://app.example.com')
+            # before deploying to production. Using '*' is only acceptable during
+            # local development.
+            AllowedOrigins: !If
+              - IsProd
+              - !Sub ['https://${FrontendDomain}', {}]
+              - ['*']
             MaxAge: 3000
       VersioningConfiguration:
         Status: Enabled
@@ -90,6 +105,8 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
 
   # ============================================
   # COGNITO - User Pool
@@ -245,6 +262,12 @@ Outputs:
     Value: !Ref UserPoolClient
     Export:
       Name: !Sub '${ProjectName}-user-pool-client-id-${Environment}'
+
+  UserPoolArn:
+    Description: Cognito User Pool ARN
+    Value: !GetAtt UserPool.Arn
+    Export:
+      Name: !Sub '${ProjectName}-user-pool-arn-${Environment}'
 
   LambdaExecutionRoleArn:
     Description: Lambda Execution Role ARN

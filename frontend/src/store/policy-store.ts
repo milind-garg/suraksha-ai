@@ -17,6 +17,12 @@ export interface CoverageGap {
   recommendation: string
 }
 
+export interface KeyDate {
+  label: string
+  date: string
+  importance: string
+}
+
 export interface PolicyAnalysis {
   summary: string
   summaryHindi: string
@@ -26,6 +32,7 @@ export interface PolicyAnalysis {
   claimSuccessProbability: number
   coverageGaps: CoverageGap[]
   recommendations: string[]
+  keyDates?: KeyDate[]
 }
 
 export interface Policy {
