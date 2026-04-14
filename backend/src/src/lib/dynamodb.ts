@@ -8,6 +8,7 @@ import {
   QueryCommand,
   ScanCommand
 } from '@aws-sdk/lib-dynamodb'
+import { Policy, User } from '../../types'
 
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || 'ap-south-1'
@@ -20,7 +21,7 @@ const USERS_TABLE = process.env.DYNAMODB_TABLE_USERS || 'suraksha-ai-users-dev'
 
 // ─── Policy Operations ────────────────────────────────
 
-export async function createPolicy(policy: any) {
+export async function createPolicy(policy: Policy) {
   await docClient.send(new PutCommand({
     TableName: POLICIES_TABLE,
     Item: policy
@@ -80,7 +81,7 @@ export async function deletePolicy(policyId: string) {
 
 // ─── User Operations ──────────────────────────────────
 
-export async function createUser(user: any) {
+export async function createUser(user: User) {
   await docClient.send(new PutCommand({
     TableName: USERS_TABLE,
     Item: user

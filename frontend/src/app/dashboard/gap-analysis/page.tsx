@@ -167,7 +167,7 @@ export default function GapAnalysisPage() {
 
     const criticalGaps = gaps.filter((g) => g.status !== "good" && g.critical);
     const goodCount = gaps.filter((g) => g.status === "good").length;
-    const overallScore = Math.round((goodCount / gaps.length) * 100);
+    const overallScore = gaps.length > 0 ? Math.round((goodCount / gaps.length) * 100) : 0;
 
     const totalCurrentCoverage = gaps.reduce(
       (sum, g) => sum + g.currentCoverage,
@@ -178,8 +178,8 @@ export default function GapAnalysisPage() {
       0,
     );
 
-    const topRecommendations = [];
-    const topRecommendationsHindi = [];
+    const topRecommendations: string[] = [];
+    const topRecommendationsHindi: string[] = [];
 
     if (gaps.find((g) => g.type === "health" && g.status !== "good")) {
       topRecommendations.push(

@@ -1,11 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import {
-  DynamoDBClient,
-  GetCommand,
-  QueryCommand,
-  UpdateCommand,
-} from "@aws-sdk/client-dynamodb";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { GetCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { docClient } from "../../lib/dynamodb";
 import {
   generateUserRecommendations,
 } from "../../lib/bedrock";
@@ -13,10 +8,6 @@ import {
   getPeerComparison,
   getUserCoverageMetrics,
 } from "../../lib/recommendations";
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "ap-south-1",
-});
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 const POLICIES_TABLE = `suraksha-ai-policies-${process.env.ENVIRONMENT || "dev"}`;
@@ -31,8 +22,6 @@ const corsHeaders = {
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log("Event:", JSON.stringify(event, null, 2));
-
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -45,6 +34,8 @@ export const handler = async (
     const userId =
       event.requestContext?.authorizer?.claims?.sub || "demo-user";
     const path = event.requestContext?.resourcePath || "";
+
+    console.log("Recommendations handler invoked for userId:", userId);
 
     if (path.includes("peer-comparison")) {
       return await getPeerComparisonHandler(userId);
@@ -80,10 +71,10 @@ async function generateRecommendationsHandler(
     // Get user profile
     const userParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
     };
 
-    const userResponse = await client.send(new GetCommand(userParams));
+    const userResponse = await docClient.send(new GetCommand(userParams));
 
     if (!userResponse.Item) {
       return {
@@ -93,7 +84,7 @@ async function generateRecommendationsHandler(
       };
     }
 
-    const user = unmarshall(userResponse.Item);
+    const user = userResponse.Item;
     const profile = user.recommendationProfile;
 
     if (!profile) {
@@ -111,15 +102,15 @@ async function generateRecommendationsHandler(
       TableName: POLICIES_TABLE,
       IndexName: "userId-createdAt-index",
       KeyConditionExpression: "userId = :userId",
-      ExpressionAttributeValues: marshall({
+      ExpressionAttributeValues: {
         ":userId": userId,
-      }),
+      },
     };
 
-    const policiesResponse = await client.send(
+    const policiesResponse = await docClient.send(
       new QueryCommand(policiesParams)
     );
-    const policies = policiesResponse.Items?.map((item) => unmarshall(item)) || [];
+    const policies = policiesResponse.Items || [];
 
     // Get peer comparison metrics
     const peerMetrics = await getPeerComparison({
@@ -173,13 +164,13 @@ async function generateRecommendationsHandler(
     // Store recommendations in DynamoDB
     const updateParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
       UpdateExpression:
         "SET recommendationHistory = list_append(if_not_exists(recommendationHistory, :empty_list), :new_rec), #ts = :timestamp",
       ExpressionAttributeNames: {
         "#ts": "updatedAt",
       },
-      ExpressionAttributeValues: marshall({
+      ExpressionAttributeValues: {
         ":empty_list": [],
         ":new_rec": [
           {
@@ -188,11 +179,10 @@ async function generateRecommendationsHandler(
           },
         ],
         ":timestamp": new Date().toISOString(),
-      }),
-      ReturnValues: "ALL_NEW",
+      },
     };
 
-    await client.send(new UpdateCommand(updateParams));
+    await docClient.send(new UpdateCommand(updateParams));
 
     return {
       statusCode: 200,
@@ -228,10 +218,10 @@ async function getRecommendationsHandler(
   try {
     const userParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
     };
 
-    const userResponse = await client.send(new GetCommand(userParams));
+    const userResponse = await docClient.send(new GetCommand(userParams));
 
     if (!userResponse.Item) {
       return {
@@ -241,7 +231,7 @@ async function getRecommendationsHandler(
       };
     }
 
-    const user = unmarshall(userResponse.Item);
+    const user = userResponse.Item;
     const history = user.recommendationHistory || [];
 
     // Return latest recommendations
@@ -276,10 +266,10 @@ async function getPeerComparisonHandler(
     // Get user profile
     const userParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
     };
 
-    const userResponse = await client.send(new GetCommand(userParams));
+    const userResponse = await docClient.send(new GetCommand(userParams));
 
     if (!userResponse.Item) {
       return {
@@ -289,7 +279,7 @@ async function getPeerComparisonHandler(
       };
     }
 
-    const user = unmarshall(userResponse.Item);
+    const user = userResponse.Item;
     const profile = user.recommendationProfile;
 
     if (!profile) {
