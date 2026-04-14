@@ -6,6 +6,7 @@ import {
   resendSignUpCode,
   getCurrentUser,
   fetchAuthSession,
+  updateUserAttributes,
   type SignUpOutput,
   type SignInOutput
 } from 'aws-amplify/auth'
@@ -109,10 +110,9 @@ export async function updateUserProfile(userData: {
   phone?: string
 }): Promise<any> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
     const token = localStorage.getItem('auth_token')
 
-    // If demo token, just return success
+    // If demo token, just update local storage
     if (token === 'demo-token') {
       const user = JSON.parse(localStorage.getItem('auth_user') || '{}')
       const updated = { ...user, ...userData }
@@ -120,22 +120,14 @@ export async function updateUserProfile(userData: {
       return updated
     }
 
-    // Update via API
-    const response = await fetch(`${apiUrl}/users/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    })
+    // Update user attributes in Cognito directly
+    const attributes: Record<string, string> = {}
+    if (userData.name !== undefined) attributes['name'] = userData.name
+    if (userData.phone !== undefined) attributes['phone_number'] = userData.phone
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.error || `Failed to update profile (${response.status})`)
-    }
+    await updateUserAttributes({ userAttributes: attributes })
 
-    return await response.json()
+    return userData
   } catch (err: any) {
     throw new Error(err.message || 'Failed to update profile')
   }

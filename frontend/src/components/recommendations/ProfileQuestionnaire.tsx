@@ -51,7 +51,7 @@ export function ProfileQuestionnaire() {
           return;
         }
 
-        const response = await fetch(`${apiUrl}/users/profile-questionnaire`, {
+        const response = await fetch(`${apiUrl}/users/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,6 +66,7 @@ export function ProfileQuestionnaire() {
         }
 
         setError(null);
+        setSuccessMessage('Profile saved successfully!');
       } catch (err: any) {
         console.error('Profile save error:', err);
         setError(err.message || 'Failed to save profile');
@@ -97,6 +98,18 @@ export function ProfileQuestionnaire() {
         <CardDescription>Step {step} of 4 — Let us know more about you</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {successMessage && (
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
         {/* Step 1: Personal Info */}
         {step === 1 && (
           <div className="space-y-4">

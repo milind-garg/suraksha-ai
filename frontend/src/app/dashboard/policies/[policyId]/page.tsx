@@ -19,7 +19,7 @@ import {
   DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 
-import { deletePolicy } from '@/lib/api'
+import { deletePolicy, analyzePolicy as analyzePolicyApi } from '@/lib/api'
 
 export default function PolicyDetailPage() {
   const params = useParams()
@@ -42,6 +42,10 @@ export default function PolicyDetailPage() {
 
   // ─── Mock AI Analysis ──────────────────────────────────
   const handleAnalyze = async () => {
+  // Capture a snapshot of currentPolicy to avoid stale-state race condition
+  const policy = currentPolicy
+  if (!policy) return
+
   setIsAnalyzing(true)
   updatePolicy(policyId, { status: 'processing' })
 
@@ -50,18 +54,8 @@ export default function PolicyDetailPage() {
 
     if (apiUrl && apiUrl !== 'PLACEHOLDER') {
       // ── REAL API: Call Lambda + Textract + Claude ──
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`${apiUrl}/policies/${policyId}/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && token !== 'demo-token' ? { Authorization: `Bearer ${token}` } : {})
-        }
-      })
-
-      if (!response.ok) throw new Error('Analysis failed')
-
-      const data = await response.json()
+      // Uses the api.ts axios instance which injects a fresh token via interceptor
+      const data = await analyzePolicyApi(policyId)
       updatePolicy(policyId, {
         status: 'analyzed',
         analysisResult: data.analysisResult
@@ -72,8 +66,8 @@ export default function PolicyDetailPage() {
       await new Promise(r => setTimeout(r, 3000))
 
       const mockAnalysis = {
-        summary: `This ${currentPolicy?.policyType} insurance policy from ${currentPolicy?.insurerName || 'your insurer'} provides coverage of ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'}. The policy covers major risks with standard exclusions. Review coverage details for complete understanding of your protection.`,
-        summaryHindi: `यह ${currentPolicy?.insurerName || 'आपकी बीमा कंपनी'} की ${currentPolicy?.policyType} बीमा पॉलिसी ₹${currentPolicy?.sumInsured?.toLocaleString('en-IN') || 'N/A'} का कवरेज प्रदान करती है। पॉलिसी प्रमुख जोखिमों को कवर करती है। अपनी सुरक्षा को पूरी तरह समझने के लिए कवरेज विवरण की समीक्षा करें।`,
+        summary: `This ${policy.policyType} insurance policy from ${policy.insurerName || 'your insurer'} provides coverage of ₹${policy.sumInsured?.toLocaleString('en-IN') || 'N/A'}. The policy covers major risks with standard exclusions. Review coverage details for complete understanding of your protection.`,
+        summaryHindi: `यह ${policy.insurerName || 'आपकी बीमा कंपनी'} की ${policy.policyType} बीमा पॉलिसी ₹${policy.sumInsured?.toLocaleString('en-IN') || 'N/A'} का कवरेज प्रदान करती है। पॉलिसी प्रमुख जोखिमों को कवर करती है। अपनी सुरक्षा को पूरी तरह समझने के लिए कवरेज विवरण की समीक्षा करें।`,
         coverageDetails: [
           { name: 'Hospitalization', covered: true, limit: '₹5,00,000', details: 'Covers in-patient hospitalization expenses' },
           { name: 'Pre-existing Diseases', covered: true, limit: 'After 2 years', details: 'Covered after 24-month waiting period' },

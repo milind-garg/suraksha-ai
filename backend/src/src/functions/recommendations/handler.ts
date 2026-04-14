@@ -161,23 +161,20 @@ async function generateRecommendationsHandler(
       };
     }
 
-    // Store recommendations in DynamoDB
+    // Store only the latest recommendation to avoid exceeding DynamoDB's 400 KB item limit
     const updateParams = {
       TableName: USERS_TABLE,
       Key: { userId },
       UpdateExpression:
-        "SET recommendationHistory = list_append(if_not_exists(recommendationHistory, :empty_list), :new_rec), #ts = :timestamp",
+        "SET latestRecommendation = :new_rec, #ts = :timestamp",
       ExpressionAttributeNames: {
         "#ts": "updatedAt",
       },
       ExpressionAttributeValues: {
-        ":empty_list": [],
-        ":new_rec": [
-          {
-            generatedAt: new Date().toISOString(),
-            ...recommendations,
-          },
-        ],
+        ":new_rec": {
+          generatedAt: new Date().toISOString(),
+          ...recommendations,
+        },
         ":timestamp": new Date().toISOString(),
       },
     };
@@ -232,10 +229,7 @@ async function getRecommendationsHandler(
     }
 
     const user = userResponse.Item;
-    const history = user.recommendationHistory || [];
-
-    // Return latest recommendations
-    const latest = history.length > 0 ? history[history.length - 1] : null;
+    const latest = user.latestRecommendation || null;
 
     return {
       statusCode: 200,
