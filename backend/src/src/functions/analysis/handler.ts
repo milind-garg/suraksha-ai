@@ -2,17 +2,18 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { extractTextFromS3 } from '../../lib/textract'
 import { analyzePolicyWithClaude } from '../../lib/bedrock'
 import { getPolicy, updatePolicy } from '../../lib/dynamodb'
-import { getCorsHeaders } from '../../lib/cors'
+import { getCorsHeaders, makePreflightResponse } from '../../lib/cors'
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || ''
 
 export const analyzePolicy = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin)
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin
+  const corsHeaders = getCorsHeaders(requestOrigin)
 
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: corsHeaders, body: '' }
+    return makePreflightResponse(requestOrigin)
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub
@@ -100,11 +101,21 @@ export const analyzePolicy = async (
     }
 
     // 6. Update DynamoDB with results
-    await updatePolicy(policyId, {
+    // Also sync back the AI-extracted top-level fields (insurerName, policyNumber)
+    // so they are visible even if the user left them blank during upload.
+    const topLevelUpdates: Record<string, any> = {
       status: 'analyzed',
       extractedText: extractedText.substring(0, 50000),
       analysisResult
-    })
+    }
+    if (analysisResult.insurerName && !policy.insurerName) {
+      topLevelUpdates.insurerName = String(analysisResult.insurerName).substring(0, 200)
+    }
+    if (analysisResult.policyNumber && !policy.policyNumber) {
+      topLevelUpdates.policyNumber = String(analysisResult.policyNumber).substring(0, 100)
+    }
+
+    await updatePolicy(policyId, topLevelUpdates)
 
     return {
       statusCode: 200,

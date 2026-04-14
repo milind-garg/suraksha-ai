@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../lib/dynamodb";
-import { getCorsHeaders } from "../../lib/cors";
+import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 
@@ -86,14 +86,11 @@ const SALARY_LOOKUP: {
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ message: "OK" }),
-    };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;

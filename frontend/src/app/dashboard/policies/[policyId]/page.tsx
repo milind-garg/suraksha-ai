@@ -19,7 +19,7 @@ import {
   DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 
-import { deletePolicy, analyzePolicy as analyzePolicyApi } from '@/lib/api'
+import { deletePolicy, analyzePolicy as analyzePolicyApi, getPolicy as fetchPolicy } from '@/lib/api'
 
 export default function PolicyDetailPage() {
   const params = useParams()
@@ -32,13 +32,35 @@ export default function PolicyDetailPage() {
   const policyId = params.policyId as string
 
   useEffect(() => {
-    const policy = policies.find(p => p.policyId === policyId)
-    if (policy) {
-      setCurrentPolicy(policy)
-    } else {
+    // Try to find the policy in the local store first for an instant render.
+    const localPolicy = policies.find(p => p.policyId === policyId)
+    if (localPolicy) {
+      setCurrentPolicy(localPolicy)
+    }
+
+    // Always refresh from the backend to ensure the latest data is shown,
+    // even when opening on a different device or after clearing the store.
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+      fetchPolicy(policyId)
+        .then((data) => {
+          if (data?.data) {
+            // Sync the fresh copy into the store
+            updatePolicy(policyId, data.data)
+            setCurrentPolicy({ ...localPolicy, ...data.data } as any)
+          }
+        })
+        .catch((err: unknown) => {
+          // If the fetch fails and we have no local copy, redirect away
+          if (!localPolicy) {
+            console.error('Failed to fetch policy:', err)
+            router.push('/dashboard/policies')
+          }
+        })
+    } else if (!localPolicy) {
       router.push('/dashboard/policies')
     }
-  }, [policyId, policies, setCurrentPolicy, router])
+  }, [policyId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Mock AI Analysis ──────────────────────────────────
   const handleAnalyze = async () => {
@@ -111,11 +133,11 @@ export default function PolicyDetailPage() {
 
     toast({ title: 'Analysis Complete!', description: 'AI has analyzed your policy' })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     updatePolicy(policyId, { status: 'error' })
     toast({
       title: 'Analysis Failed',
-      description: error.message || 'Please try again',
+      description: error instanceof Error ? error.message : 'Please try again',
       variant: 'destructive'
     })
   } finally {
@@ -123,13 +145,20 @@ export default function PolicyDetailPage() {
   }
 }
 const handleDelete = async () => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL
-      if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+      try {
         await deletePolicy(policyId)
+      } catch (error: unknown) {
+        // API deletion failed — do NOT remove locally, so the record is not lost.
+        toast({
+          title: 'Delete Failed',
+          description: error instanceof Error ? error.message : 'Could not delete policy. Please try again.',
+          variant: 'destructive'
+        })
+        setShowDeleteDialog(false)
+        return
       }
-    } catch {
-      // Ignore API errors — still remove locally so the UI stays consistent
     }
     removePolicy(policyId)
     setShowDeleteDialog(false)

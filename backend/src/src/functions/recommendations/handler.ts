@@ -8,7 +8,8 @@ import {
   getPeerComparison,
   getUserCoverageMetrics,
 } from "../../lib/recommendations";
-import { getCorsHeaders } from "../../lib/cors";
+import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
+import { RecommendationResult } from "../../../types";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 const POLICIES_TABLE = `suraksha-ai-policies-${process.env.ENVIRONMENT || "dev"}`;
@@ -16,14 +17,11 @@ const POLICIES_TABLE = `suraksha-ai-policies-${process.env.ENVIRONMENT || "dev"}
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ message: "OK" }),
-    };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;
@@ -145,7 +143,13 @@ async function generateRecommendationsHandler(
     );
 
     // Parse Claude response
-    let recommendations: any = {};
+    let recommendations: RecommendationResult = {
+      recommendations: [],
+      overallRiskScore: 0,
+      riskAssessment: '',
+      actionNextSteps: '',
+      generatedAt: new Date().toISOString(),
+    };
     try {
       const cleanJson = recommendationsJson
         .replace(/```json\n?/g, "")
@@ -159,6 +163,7 @@ async function generateRecommendationsHandler(
         overallRiskScore: 0,
         riskAssessment: "Unable to generate recommendations",
         actionNextSteps: "Please try again later",
+        generatedAt: new Date().toISOString(),
       };
     }
 
@@ -173,8 +178,8 @@ async function generateRecommendationsHandler(
       },
       ExpressionAttributeValues: {
         ":new_rec": {
-          generatedAt: new Date().toISOString(),
           ...recommendations,
+          generatedAt: new Date().toISOString(),
         },
         ":timestamp": new Date().toISOString(),
       },

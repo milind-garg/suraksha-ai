@@ -38,11 +38,24 @@ export async function getPolicy(policyId: string) {
 }
 
 export async function updatePolicy(policyId: string, updates: Record<string, any>) {
+  // Allowlist the fields that callers are permitted to update.
+  // This prevents arbitrary attribute names from being written to DynamoDB
+  // even if the caller passes untrusted/unexpected keys.
+  const ALLOWED_POLICY_FIELDS = new Set([
+    'status', 'extractedText', 'analysisResult',
+    'policyName', 'policyType', 'insurerName', 'policyNumber',
+    'premiumAmount', 'sumInsured', 'startDate', 'endDate', 's3Key',
+  ])
+
   const updateExpressions: string[] = []
   const expressionAttributeNames: Record<string, string> = {}
   const expressionAttributeValues: Record<string, any> = {}
 
   Object.entries(updates).forEach(([key, value]) => {
+    if (!ALLOWED_POLICY_FIELDS.has(key)) {
+      console.warn(`updatePolicy: ignoring disallowed field "${key}"`)
+      return
+    }
     updateExpressions.push(`#${key} = :${key}`)
     expressionAttributeNames[`#${key}`] = key
     expressionAttributeValues[`:${key}`] = value

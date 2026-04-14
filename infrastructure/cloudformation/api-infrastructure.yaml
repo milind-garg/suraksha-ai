@@ -16,8 +16,16 @@ Parameters:
     Type: String
   UsersTableName:
     Type: String
+  # Pass the full Cognito User Pool ARN (not the ID).
+  # Use the UserPoolArn output from suraksha-infrastructure stack.
   CognitoUserPoolArn:
     Type: String
+  AllowedOrigin:
+    Type: String
+    Default: '*'
+    Description: >
+      Set to your frontend's exact origin (e.g. https://app.example.com) in
+      production so Lambda CORS headers are never wildcarded.
 
 Resources:
 
@@ -35,7 +43,7 @@ Resources:
         ZipFile: |
           exports.getPresignedUrl = async (event) => ({
             statusCode: 200,
-            headers: {'Access-Control-Allow-Origin': '*'},
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
             body: JSON.stringify({message: 'Deploy real code'})
           });
       Environment:
@@ -45,6 +53,7 @@ Resources:
           DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
           DYNAMODB_TABLE_USERS: !Ref UsersTableName
           NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
 
   # ── Lambda: Analysis Handler ────────────────────────
   AnalysisFunction:
@@ -60,7 +69,7 @@ Resources:
         ZipFile: |
           exports.analyzePolicy = async (event) => ({
             statusCode: 200,
-            headers: {'Access-Control-Allow-Origin': '*'},
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
             body: JSON.stringify({message: 'Deploy real code'})
           });
       Environment:
@@ -70,6 +79,7 @@ Resources:
           DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
           BEDROCK_MODEL_ID: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
           NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
 
   # ── Lambda: Policy Handler ──────────────────────────
   PolicyFunction:
@@ -85,7 +95,7 @@ Resources:
         ZipFile: |
           exports.listPolicies = async (event) => ({
             statusCode: 200,
-            headers: {'Access-Control-Allow-Origin': '*'},
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
             body: JSON.stringify({message: 'Deploy real code'})
           });
       Environment:
@@ -94,6 +104,81 @@ Resources:
           S3_BUCKET_NAME: !Ref S3BucketName
           DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
           NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+  # ── Lambda: Profile Handler ─────────────────────────
+  ProfileFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-profile-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !Ref LambdaRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          DYNAMODB_TABLE_USERS: !Ref UsersTableName
+          NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+  # ── Lambda: Recommendations Handler ─────────────────
+  RecommendationsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-recommendations-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !Ref LambdaRoleArn
+      Timeout: 120
+      MemorySize: 512
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          DYNAMODB_TABLE_USERS: !Ref UsersTableName
+          DYNAMODB_TABLE_POLICIES: !Ref PoliciesTableName
+          BEDROCK_MODEL_ID: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+          NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+  # ── Lambda: LinkedIn Handler ────────────────────────
+  LinkedInFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-linkedin-${Environment}'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !Ref LambdaRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => ({
+            statusCode: 200,
+            headers: {'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || ''},
+            body: JSON.stringify({message: 'Deploy real code'})
+          });
+      Environment:
+        Variables:
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+          DYNAMODB_TABLE_USERS: !Ref UsersTableName
+          NODE_ENV: !Ref Environment
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
 
   # ── API Gateway ─────────────────────────────────────
   SurakshaAPI:
@@ -105,6 +190,9 @@ Resources:
         Types: [REGIONAL]
 
   # ── Cognito Authorizer ──────────────────────────────
+  # CognitoUserPoolArn must be the full ARN, e.g.:
+  #   arn:aws:cognito-idp:<region>:<account>:userpool/<pool-id>
+  # Use the UserPoolArn export from the suraksha-infrastructure stack.
   CognitoAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
@@ -115,6 +203,304 @@ Resources:
       ProviderARNs:
         - !Ref CognitoUserPoolArn
 
+  # ── API Resources ────────────────────────────────────
+
+  # /policies
+  PoliciesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !GetAtt SurakshaAPI.RootResourceId
+      PathPart: policies
+
+  # /policies/{policyId}
+  PolicyIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !Ref PoliciesResource
+      PathPart: '{policyId}'
+
+  # /policies/{policyId}/analyze
+  AnalyzeResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !Ref PolicyIdResource
+      PathPart: analyze
+
+  # /upload
+  UploadResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !GetAtt SurakshaAPI.RootResourceId
+      PathPart: upload
+
+  # /upload/presigned-url
+  PresignedUrlResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !Ref UploadResource
+      PathPart: presigned-url
+
+  # /profile
+  ProfileResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !GetAtt SurakshaAPI.RootResourceId
+      PathPart: profile
+
+  # /recommendations
+  RecommendationsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !GetAtt SurakshaAPI.RootResourceId
+      PathPart: recommendations
+
+  # /recommendations/generate
+  RecommendationsGenerateResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !Ref RecommendationsResource
+      PathPart: generate
+
+  # /recommendations/peer-comparison
+  PeerComparisonResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !Ref RecommendationsResource
+      PathPart: peer-comparison
+
+  # /linkedin
+  LinkedInResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ParentId: !GetAtt SurakshaAPI.RootResourceId
+      PathPart: linkedin
+
+  # ── Lambda Permissions ────────────────────────────────
+
+  UploadFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt UploadFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  PolicyFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PolicyFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  AnalysisFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt AnalysisFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  ProfileFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ProfileFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  RecommendationsFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt RecommendationsFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  LinkedInFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LinkedInFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${SurakshaAPI}/*'
+
+  # ── API Methods ───────────────────────────────────────
+
+  # POST /upload/presigned-url
+  PresignedUrlMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref PresignedUrlResource
+      HttpMethod: POST
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadFunction.Arn}/invocations'
+
+  # GET /policies
+  ListPoliciesMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref PoliciesResource
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PolicyFunction.Arn}/invocations'
+
+  # GET /policies/{policyId}
+  GetPolicyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref PolicyIdResource
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PolicyFunction.Arn}/invocations'
+
+  # DELETE /policies/{policyId}
+  DeletePolicyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref PolicyIdResource
+      HttpMethod: DELETE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PolicyFunction.Arn}/invocations'
+
+  # POST /policies/{policyId}/analyze
+  AnalyzePolicyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref AnalyzeResource
+      HttpMethod: POST
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AnalysisFunction.Arn}/invocations'
+
+  # GET /profile
+  GetProfileMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref ProfileResource
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProfileFunction.Arn}/invocations'
+
+  # POST /profile
+  UpdateProfileMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref ProfileResource
+      HttpMethod: POST
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProfileFunction.Arn}/invocations'
+
+  # POST /recommendations/generate
+  GenerateRecommendationsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref RecommendationsGenerateResource
+      HttpMethod: POST
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RecommendationsFunction.Arn}/invocations'
+
+  # GET /recommendations/peer-comparison
+  PeerComparisonMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref PeerComparisonResource
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RecommendationsFunction.Arn}/invocations'
+
+  # POST /linkedin
+  LinkedInMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      ResourceId: !Ref LinkedInResource
+      HttpMethod: POST
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LinkedInFunction.Arn}/invocations'
+
+  # ── API Deployment ────────────────────────────────────
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - PresignedUrlMethod
+      - ListPoliciesMethod
+      - GetPolicyMethod
+      - DeletePolicyMethod
+      - AnalyzePolicyMethod
+      - GetProfileMethod
+      - UpdateProfileMethod
+      - GenerateRecommendationsMethod
+      - PeerComparisonMethod
+      - LinkedInMethod
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref SurakshaAPI
+      DeploymentId: !Ref ApiDeployment
+      StageName: !Ref Environment
+
 Outputs:
   UploadFunctionArn:
     Value: !GetAtt UploadFunction.Arn
@@ -122,5 +508,13 @@ Outputs:
     Value: !GetAtt AnalysisFunction.Arn
   PolicyFunctionArn:
     Value: !GetAtt PolicyFunction.Arn
+  ProfileFunctionArn:
+    Value: !GetAtt ProfileFunction.Arn
+  RecommendationsFunctionArn:
+    Value: !GetAtt RecommendationsFunction.Arn
+  LinkedInFunctionArn:
+    Value: !GetAtt LinkedInFunction.Arn
   APIGatewayId:
     Value: !Ref SurakshaAPI
+  APIGatewayUrl:
+    Value: !Sub 'https://${SurakshaAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'

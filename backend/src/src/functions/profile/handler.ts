@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { UpdateCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../lib/dynamodb";
 import { UserRecommendationProfile } from "../../../types";
-import { getCorsHeaders } from "../../lib/cors";
+import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 
@@ -10,14 +10,11 @@ const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+  const requestOrigin = event.headers?.origin ?? event.headers?.Origin;
+  const corsHeaders = getCorsHeaders(requestOrigin);
 
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ message: "OK" }),
-    };
+    return makePreflightResponse(requestOrigin);
   }
 
   const userId = event.requestContext?.authorizer?.claims?.sub;
@@ -68,7 +65,38 @@ async function updateUserProfile(
   }
 
   try {
-    const profile: UserRecommendationProfile = JSON.parse(body);
+    const rawBody = JSON.parse(body);
+
+    // Accept only known, explicitly typed fields to prevent arbitrary data
+    // from being stored in the DynamoDB user record.
+    const ALLOWED_MARITAL = new Set(['single', 'married', 'divorced', 'widowed'])
+    const ALLOWED_OCC_RISK = new Set(['low', 'medium', 'high'])
+    const ALLOWED_TRAVEL = new Set(['low', 'medium', 'high'])
+    const ALLOWED_HEALTH = new Set(['excellent', 'good', 'fair', 'poor'])
+    const ALLOWED_EXERCISE = new Set(['daily', 'weekly', 'monthly', 'rarely'])
+
+    const profile: UserRecommendationProfile = {
+      age: Number(rawBody.age),
+      familySize: Number(rawBody.familySize),
+      dependents: Number(rawBody.dependents) || 0,
+      maritalStatus: ALLOWED_MARITAL.has(rawBody.maritalStatus) ? rawBody.maritalStatus : 'single',
+      annualIncome: Number(rawBody.annualIncome),
+      monthlyExpenses: Number(rawBody.monthlyExpenses) || 0,
+      savingsAmount: Number(rawBody.savingsAmount) || 0,
+      assets: String(rawBody.assets || '').substring(0, 500),
+      jobTitle: String(rawBody.jobTitle || '').substring(0, 200),
+      industry: String(rawBody.industry || '').substring(0, 200),
+      occupationalRisk: ALLOWED_OCC_RISK.has(rawBody.occupationalRisk) ? rawBody.occupationalRisk : 'low',
+      travelFrequency: ALLOWED_TRAVEL.has(rawBody.travelFrequency) ? rawBody.travelFrequency : 'low',
+      linkedinUrl: rawBody.linkedinUrl
+        ? String(rawBody.linkedinUrl).substring(0, 300)
+        : undefined,
+      healthStatus: ALLOWED_HEALTH.has(rawBody.healthStatus) ? rawBody.healthStatus : 'good',
+      smokingStatus: Boolean(rawBody.smokingStatus),
+      exerciseFrequency: ALLOWED_EXERCISE.has(rawBody.exerciseFrequency) ? rawBody.exerciseFrequency : 'weekly',
+      goals: String(rawBody.goals || '').substring(0, 1000),
+      retirementAge: Number(rawBody.retirementAge) || 60,
+    }
 
     // Validate required fields
     if (

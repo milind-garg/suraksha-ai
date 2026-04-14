@@ -66,4 +66,32 @@ export async function deletePolicy(policyId: string) {
   return response.data
 }
 
+// ─── Profile API ──────────────────────────────────────
+export async function getProfile() {
+  const response = await api.get('/profile')
+  return response.data
+}
+
+export async function updateProfile(profile: Record<string, unknown>) {
+  const response = await api.post('/profile', profile)
+  return response.data
+}
+
+// ─── Recommendations API ──────────────────────────────
+export async function generateRecommendations() {
+  const response = await api.post('/recommendations/generate')
+  return response.data
+}
+
+export async function getPeerComparison() {
+  const response = await api.get('/recommendations/peer-comparison')
+  return response.data
+}
+
+// ─── LinkedIn API ─────────────────────────────────────
+export async function analyzeLinkedIn(linkedinUrl: string) {
+  const response = await api.post('/linkedin', { linkedinUrl })
+  return response.data
+}
+
 export default api

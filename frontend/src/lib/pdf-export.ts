@@ -120,7 +120,7 @@ export function exportRecommendationsAsCSV(recommendations: any[], filename?: st
 
   const csv =
     [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n')
 
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -158,28 +158,31 @@ Your Suraksha AI User
 export function printRecommendations() {
   const container = document.getElementById('recommendations-export-container')
   if (!container) {
-    alert('Nothing to print')
-    return
+    throw new Error('Nothing to print: recommendations container not found')
   }
 
   const printWindow = window.open('', '', 'height=600,width=800')
   if (!printWindow) {
-    alert('Please allow popups to print')
-    return
+    throw new Error('Could not open print window: please allow popups for this site')
   }
+
+  // Sanitize: extract only text content from the container to prevent
+  // any script tags or event handlers embedded in AI-generated content
+  // from executing inside the new window.
+  const sanitized = document.createElement('div')
+  sanitized.textContent = container.textContent || ''
 
   printWindow.document.write(`
     <html>
       <head>
         <title>Insurance Recommendations - Print</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .recommendation { margin-bottom: 20px; page-break-inside: avoid; }
+          body { font-family: Arial, sans-serif; margin: 20px; white-space: pre-wrap; }
           @media print { body { margin: 0; } }
         </style>
       </head>
       <body>
-        ${container.innerHTML}
+        ${sanitized.innerHTML}
       </body>
     </html>
   `)

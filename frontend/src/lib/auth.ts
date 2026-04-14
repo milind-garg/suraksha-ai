@@ -110,13 +110,20 @@ export async function updateUserProfile(userData: {
   phone?: string
 }): Promise<any> {
   try {
-    const token = sessionStorage.getItem('auth_token')
+    // Check for demo token via Amplify: if there's no real Cognito session we
+    // fall back to updating sessionStorage so the demo flow still works.
+    const session = await fetchAuthSession().catch(() => null)
+    const hasRealSession = !!(session?.tokens?.idToken)
 
-    // If demo token, just update session storage
-    if (token === 'demo-token') {
-      const user = JSON.parse(sessionStorage.getItem('auth_user') || '{}')
+    if (!hasRealSession) {
+      const raw = typeof window !== 'undefined'
+        ? sessionStorage.getItem('auth_user')
+        : null
+      const user = raw ? JSON.parse(raw) : {}
       const updated = { ...user, ...userData }
-      sessionStorage.setItem('auth_user', JSON.stringify(updated))
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('auth_user', JSON.stringify(updated))
+      }
       return updated
     }
 
@@ -128,7 +135,7 @@ export async function updateUserProfile(userData: {
     await updateUserAttributes({ userAttributes: attributes })
 
     return userData
-  } catch (err: any) {
-    throw new Error(err.message || 'Failed to update profile')
+  } catch (err: unknown) {
+    throw new Error(err instanceof Error ? err.message : 'Failed to update profile')
   }
 }
