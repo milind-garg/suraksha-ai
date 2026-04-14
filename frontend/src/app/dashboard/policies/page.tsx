@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePolicyStore } from "@/store/policy-store";
+import { useLanguage } from "@/hooks/use-language";
 import {
   FileText,
   Upload,
@@ -48,6 +49,7 @@ const TYPE_ICONS: Record<string, string> = {
 export default function PoliciesPage() {
   const router = useRouter();
   const { policies } = usePolicyStore();
+  const { isHindi } = useLanguage();
 
   if (policies.length === 0) {
     return (
@@ -55,28 +57,27 @@ export default function PoliciesPage() {
         <PageHeader
           title="My Policies"
           titleHindi="मेरी पॉलिसी"
-          description="All your insurance policies in one place"
+          description={isHindi ? 'आपकी सभी बीमा पॉलिसी एक जगह' : 'All your insurance policies in one place'}
         />
         <div className="p-6 max-w-7xl mx-auto">
           <div className="text-center py-20">
             <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <FileText className="h-10 w-10 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              No Policies Yet
+            <h3 className={`text-xl font-semibold text-gray-700 mb-2 ${isHindi ? 'hindi-text' : ''}`}>
+              {isHindi ? 'अभी कोई पॉलिसी नहीं है' : 'No Policies Yet'}
             </h3>
-            <p className="text-blue-600 hindi-text mb-2">
-              अभी कोई पॉलिसी नहीं है
-            </p>
             <p className="text-gray-500 mb-6">
-              Upload your first insurance policy to get AI-powered insights
+              {isHindi
+                ? 'AI-संचालित जानकारी के लिए अपनी पहली बीमा पॉलिसी अपलोड करें'
+                : 'Upload your first insurance policy to get AI-powered insights'}
             </p>
             <Button
               onClick={() => router.push("/dashboard/upload")}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Upload className="mr-2 h-4 w-4" />
-              Upload First Policy
+              {isHindi ? 'पहली पॉलिसी अपलोड करें' : 'Upload First Policy'}
             </Button>
           </div>
         </div>
@@ -89,14 +90,14 @@ export default function PoliciesPage() {
       <PageHeader
         title="My Policies"
         titleHindi="मेरी पॉलिसी"
-        description={`${policies.length} polic${policies.length === 1 ? "y" : "ies"} found`}
+        description={isHindi ? `${policies.length} पॉलिसी मिली` : `${policies.length} polic${policies.length === 1 ? "y" : "ies"} found`}
       >
         <Button
           onClick={() => router.push("/dashboard/upload")}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Upload className="mr-2 h-4 w-4" />
-          Add Policy
+          {isHindi ? 'पॉलिसी जोड़ें' : 'Add Policy'}
         </Button>
       </PageHeader>
 
@@ -129,9 +130,9 @@ export default function PoliciesPage() {
                       </div>
                     </div>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusConfig.color}`}
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${statusConfig.color} ${isHindi ? 'hindi-text' : ''}`}
                     >
-                      {statusConfig.label}
+                      {isHindi ? statusConfig.hindi : statusConfig.label}
                     </span>
                   </div>
 
@@ -141,7 +142,7 @@ export default function PoliciesPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <IndianRupee className="h-3.5 w-3.5 text-green-600" />
                         <span>
-                          Sum Insured: ₹
+                          {isHindi ? 'बीमा राशि: ' : 'Sum Insured: '}₹
                           {policy.sumInsured.toLocaleString("en-IN")}
                         </span>
                       </div>
@@ -150,8 +151,8 @@ export default function PoliciesPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Shield className="h-3.5 w-3.5 text-blue-600" />
                         <span>
-                          Premium: ₹
-                          {policy.premiumAmount.toLocaleString("en-IN")}/yr
+                          {isHindi ? 'प्रीमियम: ' : 'Premium: '}₹
+                          {policy.premiumAmount.toLocaleString("en-IN")}{isHindi ? '/वर्ष' : '/yr'}
                         </span>
                       </div>
                     )}
@@ -159,7 +160,7 @@ export default function PoliciesPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="h-3.5 w-3.5 text-orange-600" />
                         <span>
-                          Expires:{" "}
+                          {isHindi ? 'समाप्त: ' : 'Expires: '}
                           {new Date(policy.endDate).toLocaleDateString("en-IN")}
                         </span>
                       </div>
@@ -169,14 +170,14 @@ export default function PoliciesPage() {
                   {/* Action */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     {policy.status === "analyzed" ? (
-                      <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <span className={`text-xs text-green-600 font-medium flex items-center gap-1 ${isHindi ? 'hindi-text' : ''}`}>
                         <Shield className="h-3 w-3" />
-                        Analysis Ready
+                        {isHindi ? 'विश्लेषण तैयार' : 'Analysis Ready'}
                       </span>
                     ) : (
-                      <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                      <span className={`text-xs text-blue-600 font-medium flex items-center gap-1 ${isHindi ? 'hindi-text' : ''}`}>
                         <Brain className="h-3 w-3" />
-                        Ready to Analyze
+                        {isHindi ? 'विश्लेषण के लिए तैयार' : 'Ready to Analyze'}
                       </span>
                     )}
                     <ChevronRight className="h-4 w-4 text-gray-400" />

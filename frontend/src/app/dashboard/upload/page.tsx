@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { usePolicyStore } from '@/store/policy-store'
 import { useAuthStore } from '@/store/auth-store'
+import { useLanguage } from '@/hooks/use-language'
 import { getUploadUrl, uploadFileToS3 } from '@/lib/api'
 import {
   Upload, FileText, X, CheckCircle,
@@ -36,6 +37,7 @@ export default function UploadPage() {
   const { toast } = useToast()
   const { addPolicy } = usePolicyStore()
   const { user } = useAuthStore()
+  const { isHindi } = useLanguage()
 
   const [step, setStep] = useState<UploadStep>('select')
   const [file, setFile] = useState<File | null>(null)
@@ -206,7 +208,7 @@ export default function UploadPage() {
       <PageHeader
         title="Upload Policy"
         titleHindi="पॉलिसी अपलोड करें"
-        description="Upload your insurance document for AI analysis"
+        description={isHindi ? 'AI विश्लेषण के लिए अपना बीमा दस्तावेज़ अपलोड करें' : 'Upload your insurance document for AI analysis'}
       />
 
       <div className="p-6 max-w-3xl mx-auto">
@@ -233,7 +235,7 @@ export default function UploadPage() {
                   'bg-gray-100 text-gray-400'
                 }`}>
                   {isDone ? <CheckCircle className="h-3 w-3" /> : <span>{i + 1}</span>}
-                  <span>{s.label}</span>
+                  <span className={isHindi ? 'hindi-text' : ''}>{isHindi ? s.hindi : s.label}</span>
                 </div>
                 {i < 3 && <div className="h-px w-4 bg-gray-200" />}
               </div>
@@ -257,14 +259,13 @@ export default function UploadPage() {
                 <Upload className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {isDragActive ? 'Drop your file here!' : 'Upload Insurance Document'}
+                <h3 className={`text-lg font-semibold text-gray-800 ${isHindi ? 'hindi-text' : ''}`}>
+                  {isDragActive
+                    ? (isHindi ? 'यहाँ छोड़ें!' : 'Drop your file here!')
+                    : (isHindi ? 'बीमा दस्तावेज़ अपलोड करें' : 'Upload Insurance Document')}
                 </h3>
-                <p className="text-blue-600 hindi-text text-sm mt-1">
-                  अपना बीमा दस्तावेज़ अपलोड करें
-                </p>
                 <p className="text-gray-500 text-sm mt-2">
-                  Drag & drop or click to select
+                  {isHindi ? 'खींचें और छोड़ें या क्लिक करें' : 'Drag & drop or click to select'}
                 </p>
               </div>
               <div className="flex gap-2 mt-2">
@@ -274,7 +275,7 @@ export default function UploadPage() {
                 <Badge variant="secondary">Max 10MB</Badge>
               </div>
               <Button className="bg-blue-600 hover:bg-blue-700 mt-2">
-                Choose File
+                {isHindi ? 'फ़ाइल चुनें' : 'Choose File'}
               </Button>
             </div>
           </div>
@@ -302,8 +303,8 @@ export default function UploadPage() {
 
             {/* Policy Type Selection */}
             <div>
-              <Label className="text-base font-semibold">
-                Policy Type * / पॉलिसी प्रकार
+              <Label className={`text-base font-semibold ${isHindi ? 'hindi-text' : ''}`}>
+                {isHindi ? 'पॉलिसी प्रकार *' : 'Policy Type *'}
               </Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                 {POLICY_TYPES.map((type) => (
@@ -317,8 +318,9 @@ export default function UploadPage() {
                     }`}
                   >
                     <div className="text-2xl mb-1">{type.icon}</div>
-                    <div className="text-sm font-medium text-gray-900">{type.label}</div>
-                    <div className="text-xs text-blue-600 hindi-text">{type.labelHindi}</div>
+                    <div className={`text-sm font-medium text-gray-900 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? type.labelHindi : type.label}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -327,7 +329,9 @@ export default function UploadPage() {
             {/* Form Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <Label htmlFor="policyName">Policy Name * / पॉलिसी नाम</Label>
+                <Label htmlFor="policyName" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'पॉलिसी नाम *' : 'Policy Name *'}
+                </Label>
                 <Input
                   id="policyName"
                   placeholder="e.g. Star Health Family Floater"
@@ -338,7 +342,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="insurerName">Insurance Company / बीमा कंपनी</Label>
+                <Label htmlFor="insurerName" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'बीमा कंपनी' : 'Insurance Company'}
+                </Label>
                 <Input
                   id="insurerName"
                   placeholder="e.g. Star Health, LIC, HDFC"
@@ -349,7 +355,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="policyNumber">Policy Number / पॉलिसी नंबर</Label>
+                <Label htmlFor="policyNumber" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'पॉलिसी नंबर' : 'Policy Number'}
+                </Label>
                 <Input
                   id="policyNumber"
                   placeholder="e.g. P/191113/01/2024/000123"
@@ -360,7 +368,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="premiumAmount">Annual Premium (₹) / सालाना प्रीमियम</Label>
+                <Label htmlFor="premiumAmount" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'सालाना प्रीमियम (₹)' : 'Annual Premium (₹)'}
+                </Label>
                 <Input
                   id="premiumAmount"
                   type="number"
@@ -372,7 +382,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="sumInsured">Sum Insured (₹) / बीमा राशि</Label>
+                <Label htmlFor="sumInsured" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'बीमा राशि (₹)' : 'Sum Insured (₹)'}
+                </Label>
                 <Input
                   id="sumInsured"
                   type="number"
@@ -384,7 +396,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="startDate">Start Date / शुरुआत तारीख</Label>
+                <Label htmlFor="startDate" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'शुरुआत तारीख' : 'Start Date'}
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -395,7 +409,9 @@ export default function UploadPage() {
               </div>
 
               <div>
-                <Label htmlFor="endDate">End Date / समाप्ति तारीख</Label>
+                <Label htmlFor="endDate" className={isHindi ? 'hindi-text' : ''}>
+                  {isHindi ? 'समाप्ति तारीख' : 'End Date'}
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -412,13 +428,13 @@ export default function UploadPage() {
                 onClick={resetUpload}
                 className="flex-1"
               >
-                Back
+                {isHindi ? 'वापस' : 'Back'}
               </Button>
               <Button
                 onClick={handleUpload}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                Upload & Analyze
+                {isHindi ? 'अपलोड और विश्लेषण करें' : 'Upload & Analyze'}
                 <Brain className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -432,31 +448,46 @@ export default function UploadPage() {
               <Upload className="h-10 w-10 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Uploading your policy...
+              <h3 className={`text-xl font-semibold text-gray-900 ${isHindi ? 'hindi-text' : ''}`}>
+                {isHindi ? 'आपकी पॉलिसी अपलोड हो रही है...' : 'Uploading your policy...'}
               </h3>
-              <p className="text-blue-600 hindi-text mt-1">
-                आपकी पॉलिसी अपलोड हो रही है...
-              </p>
             </div>
             <div className="max-w-sm mx-auto space-y-2">
               <Progress value={uploadProgress} className="h-3" />
-              <p className="text-sm text-gray-500">{uploadProgress}% complete</p>
+              <p className="text-sm text-gray-500">
+                {isHindi ? `${uploadProgress}% पूर्ण` : `${uploadProgress}% complete`}
+              </p>
             </div>
             <div className="bg-blue-50 rounded-xl p-4 max-w-sm mx-auto text-left space-y-2">
               {[
-                { done: uploadProgress >= 30, text: 'Connecting to upload service' },
-                { done: uploadProgress >= 60, text: 'Uploading document to secure storage' },
-                { done: uploadProgress >= 90, text: 'Finalising upload' },
-                { done: uploadProgress >= 100, text: 'Upload complete! Ready for AI analysis.' },
+                {
+                  done: uploadProgress >= 30,
+                  text: 'Connecting to upload service',
+                  hindi: 'अपलोड सेवा से जुड़ रहे हैं'
+                },
+                {
+                  done: uploadProgress >= 60,
+                  text: 'Uploading document to secure storage',
+                  hindi: 'दस्तावेज़ सुरक्षित स्टोरेज में अपलोड हो रहा है'
+                },
+                {
+                  done: uploadProgress >= 90,
+                  text: 'Finalising upload',
+                  hindi: 'अपलोड अंतिम हो रहा है'
+                },
+                {
+                  done: uploadProgress >= 100,
+                  text: 'Upload complete! Ready for AI analysis.',
+                  hindi: 'अपलोड पूर्ण! AI विश्लेषण के लिए तैयार।'
+                },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   {item.done
                     ? <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                     : <div className="h-4 w-4 rounded-full border-2 border-gray-300 flex-shrink-0" />
                   }
-                  <span className={item.done ? 'text-gray-700' : 'text-gray-400'}>
-                    {item.text}
+                  <span className={`${item.done ? 'text-gray-700' : 'text-gray-400'} ${isHindi ? 'hindi-text' : ''}`}>
+                    {isHindi ? item.hindi : item.text}
                   </span>
                 </div>
               ))}
@@ -471,14 +502,13 @@ export default function UploadPage() {
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">
-                Upload Successful!
+              <h3 className={`text-2xl font-bold text-gray-900 ${isHindi ? 'hindi-text' : ''}`}>
+                {isHindi ? 'अपलोड सफल रहा!' : 'Upload Successful!'}
               </h3>
-              <p className="text-green-600 hindi-text mt-1">
-                अपलोड सफल रहा!
-              </p>
               <p className="text-gray-500 mt-2">
-                Your policy has been uploaded and is ready for AI analysis
+                {isHindi
+                  ? 'आपकी पॉलिसी अपलोड हो गई है और AI विश्लेषण के लिए तैयार है'
+                  : 'Your policy has been uploaded and is ready for AI analysis'}
               </p>
             </div>
 
@@ -488,9 +518,18 @@ export default function UploadPage() {
                 <span className="font-semibold text-gray-900">{form.policyName}</span>
               </div>
               <div className="space-y-1 text-sm text-gray-600">
-                <p>Type: {POLICY_TYPES.find(t => t.value === form.policyType)?.label}</p>
-                {form.insurerName && <p>Insurer: {form.insurerName}</p>}
-                {form.sumInsured && <p>Sum Insured: ₹{parseInt(form.sumInsured).toLocaleString('en-IN')}</p>}
+                <p>
+                  {isHindi ? 'प्रकार: ' : 'Type: '}
+                  {isHindi
+                    ? POLICY_TYPES.find(t => t.value === form.policyType)?.labelHindi
+                    : POLICY_TYPES.find(t => t.value === form.policyType)?.label}
+                </p>
+                {form.insurerName && (
+                  <p>{isHindi ? 'बीमाकर्ता: ' : 'Insurer: '}{form.insurerName}</p>
+                )}
+                {form.sumInsured && (
+                  <p>{isHindi ? 'बीमा राशि: ' : 'Sum Insured: '}₹{parseInt(form.sumInsured).toLocaleString('en-IN')}</p>
+                )}
               </div>
             </div>
 
@@ -500,13 +539,13 @@ export default function UploadPage() {
                 onClick={resetUpload}
                 className="flex-1"
               >
-                Upload Another
+                {isHindi ? 'और अपलोड करें' : 'Upload Another'}
               </Button>
               <Button
                 onClick={() => router.push('/dashboard/policies')}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                View Policies
+                {isHindi ? 'पॉलिसी देखें' : 'View Policies'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>

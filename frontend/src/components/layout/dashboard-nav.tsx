@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { logoutUser } from '@/lib/auth'
 import { useAuthStore } from '@/store/auth-store'
 import { useToast } from '@/hooks/use-toast'
+import { useLanguage } from '@/hooks/use-language'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', labelHindi: 'डैशबोर्ड', icon: LayoutDashboard },
@@ -22,6 +23,7 @@ export function DashboardNav() {
   const pathname = usePathname()
   const { clearUser, user } = useAuthStore()
   const { toast } = useToast()
+  const { isHindi, setLanguage } = useLanguage()
 
   const handleLogout = async () => {
     try {
@@ -52,6 +54,32 @@ export function DashboardNav() {
             <p className="text-xs text-gray-400 truncate">{user.email}</p>
           </div>
         )}
+
+        {/* Language Toggle */}
+        <div className="mt-3 flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+          <button
+            onClick={() => setLanguage('en')}
+            className={cn(
+              'flex-1 text-xs font-semibold py-1.5 rounded-md transition-colors',
+              !isHindi
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            )}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('hi')}
+            className={cn(
+              'flex-1 text-xs font-semibold py-1.5 rounded-md transition-colors hindi-text',
+              isHindi
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            )}
+          >
+            हि
+          </button>
+        </div>
       </div>
 
       {/* Nav Items */}
@@ -71,9 +99,10 @@ export function DashboardNav() {
               )}
             >
               <Icon className="h-5 w-5" />
-              <div>
-                <div className="text-sm font-medium">{item.label}</div>
-                <div className="text-xs opacity-70 hindi-text">{item.labelHindi}</div>
+              <div className={isHindi ? 'hindi-text' : ''}>
+                <div className="text-sm font-medium">
+                  {isHindi ? item.labelHindi : item.label}
+                </div>
               </div>
             </button>
           )
@@ -88,7 +117,7 @@ export function DashboardNav() {
           className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800"
         >
           <LogOut className="h-5 w-5 mr-2" />
-          Logout / लॉगआउट
+          {isHindi ? 'लॉगआउट' : 'Logout'}
         </Button>
       </div>
     </aside>

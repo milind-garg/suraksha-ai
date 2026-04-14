@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/hooks/use-toast'
+import { useLanguage } from '@/hooks/use-language'
 import {
   Brain, Shield, AlertTriangle, CheckCircle,
   XCircle, ArrowLeft, IndianRupee, Calendar,
@@ -30,6 +31,7 @@ export default function PolicyDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const policyId = params.policyId as string
+  const { isHindi } = useLanguage()
 
   useEffect(() => {
     // Try to find the policy in the local store first for an instant render.
@@ -208,8 +210,9 @@ const handleDelete = async () => {
               ].map((item, i) => (
                 <div key={i} className="text-center p-3 bg-gray-50 rounded-xl">
                   <div className="text-2xl mb-1">{item.icon}</div>
-                  <div className="text-xs text-gray-500">{item.label}</div>
-                  <div className="text-xs text-blue-500 hindi-text">{item.hindi}</div>
+                  <div className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                    {isHindi ? item.hindi : item.label}
+                  </div>
                   <div className="font-semibold text-gray-900 mt-1 capitalize">{item.value || 'N/A'}</div>
                 </div>
               ))}
@@ -222,10 +225,13 @@ const handleDelete = async () => {
           <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
             <CardContent className="p-6 text-center">
               <Brain className="h-12 w-12 mx-auto mb-3 opacity-90" />
-              <h3 className="text-xl font-bold mb-1">Analyze with AI</h3>
-              <p className="text-blue-100 hindi-text text-sm mb-4">AI से विश्लेषण करें</p>
+              <h3 className="text-xl font-bold mb-1">
+                {isHindi ? 'AI से विश्लेषण करें' : 'Analyze with AI'}
+              </h3>
               <p className="text-blue-100 text-sm mb-6">
-                Get coverage details, identify gaps, and predict claim success
+                {isHindi
+                  ? 'कवरेज विवरण जानें, कमियां पहचानें, और क्लेम सफलता का अनुमान लगाएं'
+                  : 'Get coverage details, identify gaps, and predict claim success'}
               </p>
               <Button
                 onClick={handleAnalyze}
@@ -251,17 +257,14 @@ const handleDelete = async () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-600" />
-                  Policy Summary / पॉलिसी सारांश
+                  {isHindi ? 'पॉलिसी सारांश' : 'Policy Summary'}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <p className="text-sm font-medium text-blue-800 mb-1">English</p>
-                  <p className="text-gray-700">{analysis.summary}</p>
-                </div>
-                <div className="bg-orange-50 rounded-xl p-4">
-                  <p className="text-sm font-medium text-orange-800 mb-1 hindi-text">हिंदी</p>
-                  <p className="text-gray-700 hindi-text">{analysis.summaryHindi}</p>
+              <CardContent>
+                <div className={`${isHindi ? 'bg-orange-50' : 'bg-blue-50'} rounded-xl p-4`}>
+                  <p className={`text-gray-700 ${isHindi ? 'hindi-text' : ''}`}>
+                    {isHindi ? analysis.summaryHindi : analysis.summary}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -271,7 +274,7 @@ const handleDelete = async () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-green-600" />
-                  Claim Success Probability / क्लेम सफलता संभावना
+                  {isHindi ? 'क्लेम सफलता संभावना' : 'Claim Success Probability'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -286,16 +289,15 @@ const handleDelete = async () => {
                     {analysis.claimSuccessProbability}%
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {analysis.claimSuccessProbability >= 70 ? 'Good Chances' :
-                       analysis.claimSuccessProbability >= 50 ? 'Moderate Chances' : 'Low Chances'}
-                    </p>
-                    <p className="text-blue-600 hindi-text text-sm">
-                      {analysis.claimSuccessProbability >= 70 ? 'अच्छी संभावना' :
-                       analysis.claimSuccessProbability >= 50 ? 'मध्यम संभावना' : 'कम संभावना'}
+                    <p className={`text-lg font-semibold text-gray-900 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi
+                        ? (analysis.claimSuccessProbability >= 70 ? 'अच्छी संभावना' :
+                           analysis.claimSuccessProbability >= 50 ? 'मध्यम संभावना' : 'कम संभावना')
+                        : (analysis.claimSuccessProbability >= 70 ? 'Good Chances' :
+                           analysis.claimSuccessProbability >= 50 ? 'Moderate Chances' : 'Low Chances')}
                     </p>
                     <p className="text-gray-500 text-sm mt-1">
-                      Based on policy terms and coverage analysis
+                      {isHindi ? 'पॉलिसी शर्तों और कवरेज विश्लेषण पर आधारित' : 'Based on policy terms and coverage analysis'}
                     </p>
                   </div>
                 </div>
@@ -307,7 +309,7 @@ const handleDelete = async () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-blue-600" />
-                  Coverage Details / कवरेज विवरण
+                  {isHindi ? 'कवरेज विवरण' : 'Coverage Details'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -338,7 +340,7 @@ const handleDelete = async () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-600">
                   <AlertTriangle className="h-5 w-5" />
-                  Coverage Gaps / कवरेज की कमियां
+                  {isHindi ? 'कवरेज की कमियां' : 'Coverage Gaps'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -373,7 +375,7 @@ const handleDelete = async () => {
             <Card className="border-0 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
               <CardHeader>
                 <CardTitle className="text-green-700">
-                  AI Recommendations / AI की सलाह
+                  {isHindi ? 'AI की सलाह' : 'AI Recommendations'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
