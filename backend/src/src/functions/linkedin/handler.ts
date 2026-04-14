@@ -1,13 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import {
-  DynamoDBClient,
-  UpdateCommand,
-} from "@aws-sdk/client-dynamodb";
-import { marshall } from "@aws-sdk/util-dynamodb";
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "ap-south-1",
-});
+import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { docClient } from "../../lib/dynamodb";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 
@@ -97,8 +90,6 @@ const corsHeaders = {
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log("Event:", JSON.stringify(event, null, 2));
-
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -110,6 +101,8 @@ export const handler = async (
   try {
     const userId =
       event.requestContext?.authorizer?.claims?.sub || "demo-user";
+
+    console.log("LinkedIn handler invoked for userId:", userId);
 
     if (event.httpMethod === "POST" && event.body) {
       return await analyzeLinkedIn(userId, event.body);
@@ -173,13 +166,13 @@ async function analyzeLinkedIn(
     // Store in DynamoDB
     const updateParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
       UpdateExpression:
         "SET linkedinData = :linkedin, #ts = :timestamp, linkedinSalaryEstimate = :salary",
       ExpressionAttributeNames: {
         "#ts": "updatedAt",
       },
-      ExpressionAttributeValues: marshall({
+      ExpressionAttributeValues: {
         ":linkedin": {
           profileUrl: linkedinUrl,
           jobTitle: profileData.jobTitle,
@@ -190,11 +183,10 @@ async function analyzeLinkedIn(
         },
         ":salary": salaryBand,
         ":timestamp": new Date().toISOString(),
-      }),
-      ReturnValues: "ALL_NEW",
+      },
     };
 
-    await client.send(new UpdateCommand(updateParams));
+    await docClient.send(new UpdateCommand(updateParams));
 
     return {
       statusCode: 200,

@@ -1,15 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import {
-  DynamoDBClient,
-  UpdateCommand,
-  GetCommand,
-} from "@aws-sdk/client-dynamodb";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { UpdateCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { docClient } from "../../lib/dynamodb";
 import { UserRecommendationProfile } from "../../../types";
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "ap-south-1",
-});
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 
@@ -24,8 +16,6 @@ const corsHeaders = {
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  console.log("Event:", JSON.stringify(event, null, 2));
-
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -37,6 +27,8 @@ export const handler = async (
   try {
     const userId =
       event.requestContext?.authorizer?.claims?.sub || "demo-user";
+
+    console.log("Profile handler invoked for userId:", userId);
 
     if (event.httpMethod === "POST") {
       return await updateUserProfile(userId, event.body);
@@ -95,21 +87,21 @@ async function updateUserProfile(
 
     const updateParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
       UpdateExpression:
         "SET recommendationProfile = :profile, #ts = :timestamp",
       ExpressionAttributeNames: {
         "#ts": "updatedAt",
       },
-      ExpressionAttributeValues: marshall({
+      ExpressionAttributeValues: {
         ":profile": profile,
         ":timestamp": new Date().toISOString(),
-      }),
-      ReturnValues: "ALL_NEW",
+      },
+      ReturnValues: "ALL_NEW" as const,
     };
 
-    const response = await client.send(new UpdateCommand(updateParams));
-    const user = unmarshall(response.Attributes!);
+    const response = await docClient.send(new UpdateCommand(updateParams));
+    const user = response.Attributes!;
 
     return {
       statusCode: 200,
@@ -142,10 +134,10 @@ async function getUserProfile(
   try {
     const getParams = {
       TableName: USERS_TABLE,
-      Key: marshall({ userId }),
+      Key: { userId },
     };
 
-    const response = await client.send(new GetCommand(getParams));
+    const response = await docClient.send(new GetCommand(getParams));
 
     if (!response.Item) {
       return {
@@ -155,7 +147,7 @@ async function getUserProfile(
       };
     }
 
-    const user = unmarshall(response.Item);
+    const user = response.Item;
 
     return {
       statusCode: 200,

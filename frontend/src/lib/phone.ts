@@ -40,21 +40,6 @@ export function validatePhoneNumber(phone: string): boolean {
 }
 
 /**
- * Get clean phone number (digits only, with country code)
- * Returns: 91XXXXXXXXXX
- */
-export function getCleanPhoneNumber(phone: string): string {
-  let digits = phone.replace(/\D/g, '');
-
-  // Add country code if not present
-  if (!digits.startsWith('91') && digits.length === 10) {
-    digits = '91' + digits;
-  }
-
-  return digits;
-}
-
-/**
  * Format phone for display
  * Input: +91-98765-43210 or 9876543210 or 919876543210
  * Output: +91 98765 43210

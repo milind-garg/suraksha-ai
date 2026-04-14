@@ -15,6 +15,8 @@ import {
   TrendingUp, FileText, ChevronRight, Trash2
 } from 'lucide-react'
 
+import { deletePolicy } from '@/lib/api'
+
 export default function PolicyDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -121,8 +123,16 @@ export default function PolicyDetailPage() {
     setIsAnalyzing(false)
   }
 }
-const handleDelete = () => {
+const handleDelete = async () => {
   if (confirm('Are you sure you want to delete this policy?')) {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      if (apiUrl && apiUrl !== 'PLACEHOLDER') {
+        await deletePolicy(policyId)
+      }
+    } catch {
+      // Ignore API errors — still remove locally so the UI stays consistent
+    }
     removePolicy(policyId)
     toast({ title: 'Policy Deleted', description: 'Policy removed successfully' })
     router.push('/dashboard/policies')
