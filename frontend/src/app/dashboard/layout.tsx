@@ -19,9 +19,9 @@ export default function DashboardLayout({
   useEffect(() => {
     const checkAuth = async () => {
       // Check demo token first
-      const demoToken = localStorage.getItem("auth_token");
+      const demoToken = sessionStorage.getItem("auth_token");
       if (demoToken === "demo-token") {
-        const demoUser = JSON.parse(localStorage.getItem("auth_user") || "{}");
+        const demoUser = JSON.parse(sessionStorage.getItem("auth_user") || "{}");
         setUser(demoUser, demoToken);
         setChecking(false);
         return;

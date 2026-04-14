@@ -15,6 +15,16 @@ export interface BedrockMessage {
   content: string;
 }
 
+// ─── Sanitize user-controlled strings before embedding in prompts ──
+// Removes characters that could be used to inject new instructions into
+// the prompt (angle brackets, backticks, null bytes).
+function sanitizeForPrompt(value: string, maxLength = 500): string {
+  return String(value)
+    .replace(/[<>`\u0000]/g, "")
+    .trim()
+    .substring(0, maxLength);
+}
+
 // ─── Core invoke function ──────────────────────────────
 export async function invokeClaude(
   prompt: string,
@@ -54,10 +64,17 @@ Your job is to analyze insurance policy documents and provide clear, actionable 
 Always respond with valid JSON only — no markdown, no extra text.
 Be accurate, helpful, and use simple language that Indian families can understand.`;
 
-  const prompt = `Analyze this ${policyType} insurance policy named "${policyName}".
+  // Sanitize user-supplied fields that are embedded in the prompt
+  const safePolicyType = sanitizeForPrompt(policyType, 100);
+  const safePolicyName = sanitizeForPrompt(policyName, 200);
+  // Extracted text comes from Textract (not directly user-controlled) but we
+  // still cap it to prevent runaway token usage.
+  const safeText = extractedText.substring(0, 8000);
+
+  const prompt = `Analyze this ${safePolicyType} insurance policy named "${safePolicyName}".
 
 POLICY TEXT:
-${extractedText.substring(0, 8000)}
+${safeText}
 
 Respond with ONLY this JSON structure (no markdown, no extra text):
 {
@@ -128,31 +145,39 @@ Consider: life stage, income, family responsibilities, occupation risks, and pee
 Be specific, actionable, and use simple Indian terms.
 Always respond with valid JSON only—no markdown, no extra text.`;
 
+  // Sanitize all user-controlled string fields to prevent prompt injection
+  const safeJobTitle = sanitizeForPrompt(userProfile.jobTitle, 100);
+  const safeIndustry = sanitizeForPrompt(userProfile.industry, 100);
+  const safeOccRisk = sanitizeForPrompt(userProfile.occupationalRisk, 50);
+  const safeHealthStatus = sanitizeForPrompt(userProfile.healthStatus, 100);
+  const safeGoals = sanitizeForPrompt(userProfile.goals, 300);
+  const safeMaritalStatus = sanitizeForPrompt(userProfile.maritalStatus, 50);
+
   const policiesList =
     existingPolicies.length > 0
-      ? existingPolicies.map((p) => `- ${p.policyType}: ₹${p.sumInsured} (Expires: ${p.endDate})`).join('\n')
+      ? existingPolicies.map((p) => `- ${sanitizeForPrompt(p.policyType, 50)}: ₹${Number(p.sumInsured)} (Expires: ${sanitizeForPrompt(p.endDate, 20)})`).join('\n')
       : '- No existing policies';
 
   const prompt = `You are recommending insurance policies to an Indian family.
 
 User Profile:
-- Age: ${userProfile.age} years
-- Family Size: ${userProfile.familySize} members (${userProfile.dependents} dependents)
-- Annual Income: ₹${userProfile.annualIncome}
-- Job Title: ${userProfile.jobTitle}
-- Industry: ${userProfile.industry}
-- Occupational Risk Level: ${userProfile.occupationalRisk}
-- Health Status: ${userProfile.healthStatus}
-- Primary Goals: ${userProfile.goals}
-- Marital Status: ${userProfile.maritalStatus}
+- Age: ${Number(userProfile.age)} years
+- Family Size: ${Number(userProfile.familySize)} members (${Number(userProfile.dependents)} dependents)
+- Annual Income: ₹${Number(userProfile.annualIncome)}
+- Job Title: ${safeJobTitle}
+- Industry: ${safeIndustry}
+- Occupational Risk Level: ${safeOccRisk}
+- Health Status: ${safeHealthStatus}
+- Primary Goals: ${safeGoals}
+- Marital Status: ${safeMaritalStatus}
 
 Current Coverage:
 ${policiesList}
 
 Peer Benchmarks (Similar Age/Income/Occupation):
-- Average Health Coverage: ₹${peerMetrics.avgHealthCoverage}
-- Average Life Insurance: ₹${peerMetrics.avgLifeInsurance}
-- User's Percentile Coverage Rank: ${peerMetrics.percentile}%
+- Average Health Coverage: ₹${Number(peerMetrics.avgHealthCoverage)}
+- Average Life Insurance: ₹${Number(peerMetrics.avgLifeInsurance)}
+- User's Percentile Coverage Rank: ${Number(peerMetrics.percentile)}%
 
 Provide recommendations as JSON only (no markdown, no extra text):
 {

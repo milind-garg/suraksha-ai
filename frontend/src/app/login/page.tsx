@@ -156,8 +156,8 @@ export default function LoginPage() {
           <Button
             variant="outline"
             onClick={() => {
-              localStorage.setItem("auth_token", "demo-token");
-              localStorage.setItem(
+              sessionStorage.setItem("auth_token", "demo-token");
+              sessionStorage.setItem(
                 "auth_user",
                 JSON.stringify({
                   userId: "demo-user",

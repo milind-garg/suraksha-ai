@@ -2,20 +2,16 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { UpdateCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../lib/dynamodb";
 import { UserRecommendationProfile } from "../../../types";
+import { getCorsHeaders } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
-
-// ─── CORS Headers ──────────────────────────────────────
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
 
 // ─── Handle Preflight ──────────────────────────────────
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -24,16 +20,22 @@ export const handler = async (
     };
   }
 
-  try {
-    const userId =
-      event.requestContext?.authorizer?.claims?.sub || "demo-user";
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
+  }
 
+  try {
     console.log("Profile handler invoked for userId:", userId);
 
     if (event.httpMethod === "POST") {
-      return await updateUserProfile(userId, event.body);
+      return await updateUserProfile(userId, event.body, corsHeaders);
     } else if (event.httpMethod === "GET") {
-      return await getUserProfile(userId);
+      return await getUserProfile(userId, corsHeaders);
     }
 
     return {
@@ -41,15 +43,12 @@ export const handler = async (
       headers: corsHeaders,
       body: JSON.stringify({ error: "Invalid HTTP method" }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Internal server error",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
@@ -57,7 +56,8 @@ export const handler = async (
 // ─── Update User Profile ───────────────────────────────
 async function updateUserProfile(
   userId: string,
-  body: string | null
+  body: string | null,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   if (!body) {
     return {
@@ -114,22 +114,20 @@ async function updateUserProfile(
         },
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating profile:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Failed to update profile",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Failed to update profile" }),
     };
   }
 }
 
 // ─── Get User Profile ──────────────────────────────────
 async function getUserProfile(
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   try {
     const getParams = {
@@ -161,15 +159,12 @@ async function getUserProfile(
         },
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error getting profile:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Failed to get profile",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Failed to get profile" }),
     };
   }
 }

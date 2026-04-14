@@ -8,20 +8,16 @@ import {
   getPeerComparison,
   getUserCoverageMetrics,
 } from "../../lib/recommendations";
+import { getCorsHeaders } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 const POLICIES_TABLE = `suraksha-ai-policies-${process.env.ENVIRONMENT || "dev"}`;
 
-// ─── CORS Headers ──────────────────────────────────────
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -30,19 +26,26 @@ export const handler = async (
     };
   }
 
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
+  }
+
   try {
-    const userId =
-      event.requestContext?.authorizer?.claims?.sub || "demo-user";
     const path = event.requestContext?.resourcePath || "";
 
     console.log("Recommendations handler invoked for userId:", userId);
 
     if (path.includes("peer-comparison")) {
-      return await getPeerComparisonHandler(userId);
+      return await getPeerComparisonHandler(userId, corsHeaders);
     } else if (event.httpMethod === "POST") {
-      return await generateRecommendationsHandler(userId);
+      return await generateRecommendationsHandler(userId, corsHeaders);
     } else if (event.httpMethod === "GET") {
-      return await getRecommendationsHandler(userId);
+      return await getRecommendationsHandler(userId, corsHeaders);
     }
 
     return {
@@ -50,22 +53,20 @@ export const handler = async (
       headers: corsHeaders,
       body: JSON.stringify({ error: "Invalid request" }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Internal server error",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
 
 // ─── Generate Recommendations ──────────────────────
 async function generateRecommendationsHandler(
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   try {
     // Get user profile
@@ -195,14 +196,13 @@ async function generateRecommendationsHandler(
         },
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating recommendations:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
         error: "Failed to generate recommendations",
-        message: error.message,
       }),
     };
   }
@@ -210,7 +210,8 @@ async function generateRecommendationsHandler(
 
 // ─── Get Cached Recommendations ────────────────────
 async function getRecommendationsHandler(
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   try {
     const userParams = {
@@ -239,14 +240,13 @@ async function getRecommendationsHandler(
         data: latest,
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error getting recommendations:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
         error: "Failed to get recommendations",
-        message: error.message,
       }),
     };
   }
@@ -254,7 +254,8 @@ async function getRecommendationsHandler(
 
 // ─── Get Peer Comparison ───────────────────────────
 async function getPeerComparisonHandler(
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   try {
     // Get user profile
@@ -309,14 +310,13 @@ async function getPeerComparisonHandler(
         },
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error getting peer comparison:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
         error: "Failed to get peer comparison",
-        message: error.message,
       }),
     };
   }

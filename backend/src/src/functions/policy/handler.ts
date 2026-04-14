@@ -1,23 +1,28 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { getPolicy, getUserPolicies, deletePolicy } from "../../lib/dynamodb";
 import { deleteS3Object, generateDownloadUrl } from "../../lib/s3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-};
+import { getCorsHeaders } from "../../lib/cors";
 
 // ─── GET /policies ────────────────────────────────────
 export const listPolicies = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
   }
 
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
+  }
+
   try {
-    const userId = event.requestContext?.authorizer?.claims?.sub || "demo-user";
     const policies = await getUserPolicies(userId);
 
     return {
@@ -25,11 +30,12 @@ export const listPolicies = async (
       headers: corsHeaders,
       body: JSON.stringify({ success: true, data: policies }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error("listPolicies error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
@@ -38,8 +44,19 @@ export const listPolicies = async (
 export const getPolicyById = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
+  }
+
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
   }
 
   try {
@@ -61,6 +78,15 @@ export const getPolicyById = async (
       };
     }
 
+    // Ownership check – prevents IDOR
+    if (policy.userId !== userId) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Forbidden" }),
+      };
+    }
+
     // Generate download URL if S3 key exists
     if (policy.s3Key) {
       policy.documentUrl = await generateDownloadUrl(policy.s3Key);
@@ -71,11 +97,12 @@ export const getPolicyById = async (
       headers: corsHeaders,
       body: JSON.stringify({ success: true, data: policy }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error("getPolicyById error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
@@ -84,8 +111,19 @@ export const getPolicyById = async (
 export const deletePolicyById = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
+  }
+
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
   }
 
   try {
@@ -97,8 +135,6 @@ export const deletePolicyById = async (
         body: JSON.stringify({ error: "Policy ID required" }),
       };
     }
-
-    const userId = event.requestContext?.authorizer?.claims?.sub || "demo-user";
 
     const policy = await getPolicy(policyId);
     if (!policy) {
@@ -128,11 +164,12 @@ export const deletePolicyById = async (
       headers: corsHeaders,
       body: JSON.stringify({ success: true, message: "Policy deleted" }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error("deletePolicyById error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: error.message }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
