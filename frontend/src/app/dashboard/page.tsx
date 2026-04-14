@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { PageHeader } from '@/components/layout/page-header'
 import { usePolicyStore } from '@/store/policy-store'
 import { useAuthStore } from '@/store/auth-store'
+import { useLanguage } from '@/hooks/use-language'
 import {
   Shield, FileText, TrendingUp, AlertTriangle,
   Upload, ArrowRight, CheckCircle, Clock,
@@ -19,13 +20,14 @@ export default function DashboardPage() {
   const router = useRouter()
   const { policies } = usePolicyStore()
   const { user } = useAuthStore()
-  const [greeting, setGreeting] = useState('Namaste')
+  const { isHindi } = useLanguage()
+  const [greeting, setGreeting] = useState({ en: 'Namaste', hi: 'नमस्ते' })
 
   useEffect(() => {
     const hour = new Date().getHours()
-    if (hour < 12) setGreeting('Suprabhat')
-    else if (hour < 17) setGreeting('Namaste')
-    else setGreeting('Shubh Sandhya')
+    if (hour < 12) setGreeting({ en: 'Good Morning', hi: 'सुप्रभात' })
+    else if (hour < 17) setGreeting({ en: 'Good Afternoon', hi: 'नमस्ते' })
+    else setGreeting({ en: 'Good Evening', hi: 'शुभ संध्या' })
   }, [])
 
   const totalPolicies = policies.length
@@ -122,9 +124,9 @@ export default function DashboardPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title={`${greeting}, ${user?.name?.split(' ')[0] || 'User'}!`}
-        titleHindi="आपका स्वागत है सुरक्षा AI में"
-        description="Your insurance intelligence overview"
+        title={`${greeting.en}, ${user?.name?.split(' ')[0] || 'User'}!`}
+        titleHindi={`${greeting.hi}, ${user?.name?.split(' ')[0] || 'User'}!`}
+        description={isHindi ? 'सुरक्षा AI में आपका स्वागत है' : 'Your insurance intelligence overview'}
       />
 
       <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -139,8 +141,9 @@ export default function DashboardPage() {
                     {stat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-500 truncate">{stat.title}</p>
-                    <p className="text-xs text-blue-500 hindi-text truncate">{stat.titleHindi}</p>
+                    <p className={`text-xs text-gray-500 truncate ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? stat.titleHindi : stat.title}
+                    </p>
                     <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{stat.sub}</p>
                   </div>
@@ -153,7 +156,7 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Quick Actions / त्वरित कार्य
+            {isHindi ? 'त्वरित कार्य' : 'Quick Actions'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {quickActions.map((action, i) => (
@@ -173,16 +176,11 @@ export default function DashboardPage() {
                         {action.icon}
                       </div>
                       <div>
-                        <h3 className={`font-semibold text-sm ${
+                        <h3 className={`font-semibold text-sm ${isHindi ? 'hindi-text' : ''} ${
                           action.primary ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {action.title}
+                          {isHindi ? action.titleHindi : action.title}
                         </h3>
-                        <p className={`text-xs hindi-text ${
-                          action.primary ? 'text-blue-100' : 'text-blue-500'
-                        }`}>
-                          {action.titleHindi}
-                        </p>
                         <p className={`text-xs mt-1 ${
                           action.primary ? 'text-blue-100' : 'text-gray-500'
                         }`}>
@@ -211,7 +209,7 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Star className="h-5 w-5 text-yellow-500" />
-                    Coverage Health Score / कवरेज स्वास्थ्य स्कोर
+                    {isHindi ? 'कवरेज स्वास्थ्य स्कोर' : 'Coverage Health Score'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -238,9 +236,8 @@ export default function DashboardPage() {
                           <div>
                             <span className={`text-3xl font-bold ${color}`}>{scoreInt}</span>
                             <span className="text-gray-400 text-lg">/100</span>
-                            <span className={`ml-2 font-medium ${color}`}>{label}</span>
-                            <span className={`ml-1 text-sm hindi-text ${color}`}>
-                              ({labelHindi})
+                            <span className={`ml-2 font-medium ${isHindi ? 'hindi-text' : ''} ${color}`}>
+                              {isHindi ? labelHindi : label}
                             </span>
                           </div>
                           <Button
@@ -249,15 +246,16 @@ export default function DashboardPage() {
                             onClick={() => router.push('/dashboard/gap-analysis')}
                             className="text-blue-600 border-blue-200"
                           >
-                            Full Analysis
+                            {isHindi ? 'पूर्ण विश्लेषण' : 'Full Analysis'}
                             <ChevronRight className="h-3 w-3 ml-1" />
                           </Button>
                         </div>
                         <Progress value={scoreInt} className="h-3" />
                         <p className="text-xs text-gray-500">
-                          Based on {totalPolicies} {totalPolicies === 1 ? 'policy' : 'policies'},
-                          {' '}{analyzedPolicies.length} analyzed,
-                          {' '}{totalGaps} gap{totalGaps !== 1 ? 's' : ''} found
+                          {isHindi
+                            ? `${totalPolicies} पॉलिसी, ${analyzedPolicies.length} विश्लेषित, ${totalGaps} कमी`
+                            : `Based on ${totalPolicies} ${totalPolicies === 1 ? 'policy' : 'policies'}, ${analyzedPolicies.length} analyzed, ${totalGaps} gap${totalGaps !== 1 ? 's' : ''} found`
+                          }
                         </p>
                       </div>
                     )
@@ -271,7 +269,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
-                    Recent Policies / हाल की पॉलिसी
+                    {isHindi ? 'हाल की पॉलिसी' : 'Recent Policies'}
                   </CardTitle>
                   {policies.length > 0 && (
                     <Button
@@ -280,7 +278,7 @@ export default function DashboardPage() {
                       onClick={() => router.push('/dashboard/policies')}
                       className="text-blue-600 text-xs"
                     >
-                      View All <ChevronRight className="h-3 w-3 ml-1" />
+                      {isHindi ? 'सभी देखें' : 'View All'} <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   )}
                 </div>
@@ -289,16 +287,15 @@ export default function DashboardPage() {
                 {recentPolicies.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">No policies yet</p>
-                    <p className="text-blue-500 hindi-text text-xs">
-                      अभी कोई पॉलिसी नहीं
+                    <p className="text-gray-500 text-sm">
+                      {isHindi ? 'अभी कोई पॉलिसी नहीं' : 'No policies yet'}
                     </p>
                     <Button
                       size="sm"
                       onClick={() => router.push('/dashboard/upload')}
                       className="mt-3 bg-blue-600 hover:bg-blue-700"
                     >
-                      Upload First Policy
+                      {isHindi ? 'पहली पॉलिसी अपलोड करें' : 'Upload First Policy'}
                     </Button>
                   </div>
                 ) : (
@@ -349,11 +346,14 @@ export default function DashboardPage() {
             >
               <CardContent className="p-5 text-center">
                 <Upload className="h-10 w-10 mx-auto mb-3 opacity-90" />
-                <h3 className="font-bold text-lg">Upload Policy</h3>
-                <p className="text-blue-100 hindi-text text-sm">पॉलिसी अपलोड करें</p>
-                <p className="text-blue-200 text-xs mt-2">Get instant AI analysis</p>
+                <h3 className={`font-bold text-lg ${isHindi ? 'hindi-text' : ''}`}>
+                  {isHindi ? 'पॉलिसी अपलोड करें' : 'Upload Policy'}
+                </h3>
+                <p className="text-blue-200 text-xs mt-2">
+                  {isHindi ? 'तुरंत AI विश्लेषण पाएं' : 'Get instant AI analysis'}
+                </p>
                 <div className="mt-3 bg-white/20 rounded-lg px-3 py-1.5 text-sm font-medium">
-                  Start Now →
+                  {isHindi ? 'अभी शुरू करें →' : 'Start Now →'}
                 </div>
               </CardContent>
             </Card>
@@ -363,7 +363,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Brain className="h-4 w-4 text-purple-600" />
-                  AI Tips / AI सलाह
+                  {isHindi ? 'AI सलाह' : 'AI Tips'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -386,12 +386,9 @@ export default function DashboardPage() {
                       <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                         {i + 1}
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-700">{item.tip}</p>
-                        <p className="text-xs text-purple-600 hindi-text mt-0.5">
-                          {item.hindi}
-                        </p>
-                      </div>
+                      <p className={`text-xs text-gray-700 ${isHindi ? 'hindi-text' : ''}`}>
+                        {isHindi ? item.hindi : item.tip}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -401,8 +398,8 @@ export default function DashboardPage() {
             {/* Getting Started */}
             <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">
-                  Getting Started / शुरुआत करें
+                <CardTitle className={`text-sm ${isHindi ? 'hindi-text' : ''}`}>
+                  {isHindi ? 'शुरुआत करें' : 'Getting Started'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -422,16 +419,11 @@ export default function DashboardPage() {
                         ? <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                         : <Clock className="h-4 w-4 text-gray-300 flex-shrink-0" />
                       }
-                      <div>
-                        <span className={`text-xs ${
-                          item.done ? 'text-gray-400 line-through' : 'text-gray-700'
-                        }`}>
-                          {item.text}
-                        </span>
-                        <span className="text-xs text-blue-400 hindi-text ml-1">
-                          {item.hindi}
-                        </span>
-                      </div>
+                      <span className={`text-xs ${isHindi ? 'hindi-text' : ''} ${
+                        item.done ? 'text-gray-400 line-through' : 'text-gray-700'
+                      }`}>
+                        {isHindi ? item.hindi : item.text}
+                      </span>
                     </div>
                   ))}
                 </div>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { usePolicyStore } from "@/store/policy-store";
+import { useLanguage } from "@/hooks/use-language";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   AlertTriangle,
@@ -112,6 +113,7 @@ interface AnalysisResult {
 export default function GapAnalysisPage() {
   const router = useRouter();
   const { policies } = usePolicyStore();
+  const { isHindi } = useLanguage();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -251,7 +253,7 @@ export default function GapAnalysisPage() {
       <PageHeader
         title="Coverage Gap Analysis"
         titleHindi="कवरेज गैप विश्लेषण"
-        description="AI-powered comparison of your coverage vs recommended standards"
+        description={isHindi ? 'आपकी कवरेज और अनुशंसित मानकों की AI-संचालित तुलना' : 'AI-powered comparison of your coverage vs recommended standards'}
       />
 
       <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -260,21 +262,19 @@ export default function GapAnalysisPage() {
           <Card className="border-0 shadow-sm">
             <CardContent className="p-12 text-center">
               <Shield className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No Policies to Analyze
+              <h3 className={`text-xl font-semibold text-gray-700 mb-2 ${isHindi ? 'hindi-text' : ''}`}>
+                {isHindi ? 'विश्लेषण के लिए कोई पॉलिसी नहीं है' : 'No Policies to Analyze'}
               </h3>
-              <p className="text-blue-600 hindi-text mb-4">
-                विश्लेषण के लिए कोई पॉलिसी नहीं है
-              </p>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                Upload at least one insurance policy to see your coverage gaps
-                and get personalized recommendations.
+                {isHindi
+                  ? 'कवरेज कमियां देखने और व्यक्तिगत सुझाव पाने के लिए कम से कम एक बीमा पॉलिसी अपलोड करें।'
+                  : 'Upload at least one insurance policy to see your coverage gaps and get personalized recommendations.'}
               </p>
               <Button
                 onClick={() => router.push("/dashboard/upload")}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Upload a Policy First
+                {isHindi ? 'पहले पॉलिसी अपलोड करें' : 'Upload a Policy First'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
@@ -288,22 +288,17 @@ export default function GapAnalysisPage() {
               <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-6 animate-pulse">
                 <Brain className="h-10 w-10 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                Analyzing Your Coverage...
+              <h3 className={`text-xl font-semibold text-gray-800 mb-2 ${isHindi ? 'hindi-text' : ''}`}>
+                {isHindi ? 'आपकी कवरेज का विश्लेषण हो रहा है...' : 'Analyzing Your Coverage...'}
               </h3>
-              <p className="text-blue-600 hindi-text mb-6">
-                आपकी कवरेज का विश्लेषण हो रहा है...
-              </p>
               <div className="max-w-sm mx-auto space-y-3">
-                {[
-                  "Scanning all your policies",
-                  "Comparing with Indian coverage standards",
-                  "Identifying critical gaps",
-                  "Generating recommendations",
-                ].map((step, i) => (
+                {(isHindi
+                  ? ['सभी पॉलिसी स्कैन हो रही हैं', 'भारतीय कवरेज मानकों से तुलना', 'गंभीर कमियां पहचाना जा रहा है', 'सुझाव तैयार हो रहे हैं']
+                  : ['Scanning all your policies', 'Comparing with Indian coverage standards', 'Identifying critical gaps', 'Generating recommendations']
+                ).map((step, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 text-sm text-gray-600"
+                    className={`flex items-center gap-3 text-sm text-gray-600 ${isHindi ? 'hindi-text' : ''}`}
                   >
                     <div className="w-4 h-4 rounded-full bg-blue-600 animate-pulse flex-shrink-0" />
                     {step}
@@ -322,11 +317,8 @@ export default function GapAnalysisPage() {
               {/* Score */}
               <Card className="border-0 shadow-sm md:col-span-1">
                 <CardContent className="p-6 text-center">
-                  <p className="text-sm text-gray-500 mb-2">
-                    Overall Protection Score
-                  </p>
-                  <p className="text-xs text-blue-500 hindi-text mb-4">
-                    समग्र सुरक्षा स्कोर
+                  <p className={`text-sm text-gray-500 mb-4 ${isHindi ? 'hindi-text' : ''}`}>
+                    {isHindi ? 'समग्र सुरक्षा स्कोर' : 'Overall Protection Score'}
                   </p>
                   <div
                     className={`text-6xl font-bold ${getScoreColor(result.overallScore)}`}
@@ -335,14 +327,9 @@ export default function GapAnalysisPage() {
                   </div>
                   <div className="text-gray-400 text-lg mb-2">/100</div>
                   <div
-                    className={`font-semibold ${getScoreColor(result.overallScore)}`}
+                    className={`font-semibold ${isHindi ? 'hindi-text' : ''} ${getScoreColor(result.overallScore)}`}
                   >
-                    {getScoreLabel(result.overallScore).en}
-                  </div>
-                  <div
-                    className={`text-sm hindi-text ${getScoreColor(result.overallScore)}`}
-                  >
-                    {getScoreLabel(result.overallScore).hi}
+                    {isHindi ? getScoreLabel(result.overallScore).hi : getScoreLabel(result.overallScore).en}
                   </div>
                   <Progress value={result.overallScore} className="mt-4 h-2" />
                 </CardContent>
@@ -351,32 +338,25 @@ export default function GapAnalysisPage() {
               {/* Coverage Stats */}
               <Card className="border-0 shadow-sm md:col-span-2">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <h3 className={`font-semibold text-gray-900 mb-4 flex items-center gap-2 ${isHindi ? 'hindi-text' : ''}`}>
                     <IndianRupee className="h-5 w-5 text-green-600" />
-                    Coverage Overview / कवरेज अवलोकन
+                    {isHindi ? 'कवरेज अवलोकन' : 'Coverage Overview'}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="bg-green-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500">
-                        Your Current Coverage
-                      </p>
-                      <p className="text-xs text-green-600 hindi-text">
-                        आपका मौजूदा कवरेज
+                      <p className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                        {isHindi ? 'आपका मौजूदा कवरेज' : 'Your Current Coverage'}
                       </p>
                       <p className="text-2xl font-bold text-green-700 mt-1">
                         ₹{(result.totalCurrentCoverage / 100000).toFixed(1)}L
                       </p>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500">
-                        Recommended Coverage
-                      </p>
-                      <p className="text-xs text-blue-600 hindi-text">
-                        अनुशंसित कवरेज
+                      <p className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                        {isHindi ? 'अनुशंसित कवरेज' : 'Recommended Coverage'}
                       </p>
                       <p className="text-2xl font-bold text-blue-700 mt-1">
-                        ₹{(result.totalRecommendedCoverage / 100000).toFixed(1)}
-                        L
+                        ₹{(result.totalRecommendedCoverage / 100000).toFixed(1)}L
                       </p>
                     </div>
                   </div>
@@ -387,22 +367,19 @@ export default function GapAnalysisPage() {
                       {
                         label: "Well Covered",
                         hindi: "अच्छा",
-                        count: result.gaps.filter((g) => g.status === "good")
-                          .length,
+                        count: result.gaps.filter((g) => g.status === "good").length,
                         color: "bg-green-100 text-green-700",
                       },
                       {
                         label: "Low Coverage",
                         hindi: "कम",
-                        count: result.gaps.filter((g) => g.status === "low")
-                          .length,
+                        count: result.gaps.filter((g) => g.status === "low").length,
                         color: "bg-yellow-100 text-yellow-700",
                       },
                       {
                         label: "Not Covered",
-                        hindi: "नहीं",
-                        count: result.gaps.filter((g) => g.status === "missing")
-                          .length,
+                        hindi: "नहीं है",
+                        count: result.gaps.filter((g) => g.status === "missing").length,
                         color: "bg-red-100 text-red-700",
                       },
                     ].map((item, i) => (
@@ -411,8 +388,9 @@ export default function GapAnalysisPage() {
                         className={`flex-1 rounded-xl p-3 text-center ${item.color}`}
                       >
                         <div className="text-2xl font-bold">{item.count}</div>
-                        <div className="text-xs font-medium">{item.label}</div>
-                        <div className="text-xs hindi-text">{item.hindi}</div>
+                        <div className={`text-xs font-medium ${isHindi ? 'hindi-text' : ''}`}>
+                          {isHindi ? item.hindi : item.label}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -424,10 +402,9 @@ export default function GapAnalysisPage() {
             {result.criticalGaps.length > 0 && (
               <Card className="border-0 shadow-sm border-l-4 border-l-red-500">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-red-700 flex items-center gap-2">
+                  <CardTitle className={`text-base text-red-700 flex items-center gap-2 ${isHindi ? 'hindi-text' : ''}`}>
                     <AlertTriangle className="h-5 w-5" />
-                    Critical Gaps — Action Required / गंभीर कमियां — तुरंत
-                    कार्रवाई जरूरी
+                    {isHindi ? 'गंभीर कमियां — तुरंत कार्रवाई जरूरी' : 'Critical Gaps — Action Required'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -449,22 +426,19 @@ export default function GapAnalysisPage() {
                                 : "LOW COVERAGE"}
                             </Badge>
                           </div>
-                          <p className="text-sm text-red-700 hindi-text">
-                            {gap.labelHindi}
+                          <p className="text-sm text-red-700 font-medium">
+                            {isHindi ? gap.labelHindi : gap.label}
                           </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {gap.reason}
-                          </p>
-                          <p className="text-xs text-orange-600 hindi-text mt-0.5">
-                            {gap.reasonHindi}
+                          <p className={`text-sm text-gray-600 mt-1 ${isHindi ? 'hindi-text' : ''}`}>
+                            {isHindi ? gap.reasonHindi : gap.reason}
                           </p>
                           {gap.status === "low" && (
                             <p className="text-sm text-red-600 mt-1 font-medium">
-                              Current: ₹
+                              {isHindi ? 'वर्तमान: ' : 'Current: '}₹
                               {(gap.currentCoverage / 100000).toFixed(1)}L →
-                              Need: ₹
+                              {isHindi ? ' आवश्यक: ' : ' Need: '}₹
                               {(gap.recommendedCoverage / 100000).toFixed(1)}L
-                              (Gap: ₹{(gap.gap / 100000).toFixed(1)}L)
+                              ({isHindi ? 'कमी: ' : 'Gap: '}₹{(gap.gap / 100000).toFixed(1)}L)
                             </p>
                           )}
                         </div>
@@ -501,12 +475,9 @@ export default function GapAnalysisPage() {
                     activeTab === tab.key
                       ? "bg-white text-blue-700 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                  } ${isHindi ? 'hindi-text' : ''}`}
                 >
-                  <div>{tab.label}</div>
-                  <div className="text-xs hindi-text opacity-70">
-                    {tab.hindi}
-                  </div>
+                  {isHindi ? tab.hindi : tab.label}
                 </button>
               ))}
             </div>
@@ -530,11 +501,8 @@ export default function GapAnalysisPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-2xl">{gap.icon}</span>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm">
-                              {gap.label}
-                            </p>
-                            <p className="text-xs text-blue-600 hindi-text">
-                              {gap.labelHindi}
+                            <p className={`font-semibold text-gray-900 text-sm ${isHindi ? 'hindi-text' : ''}`}>
+                              {isHindi ? gap.labelHindi : gap.label}
                             </p>
                           </div>
                         </div>
@@ -566,13 +534,13 @@ export default function GapAnalysisPage() {
                         />
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-500">
-                            Have:{" "}
+                            {isHindi ? 'है: ' : 'Have: '}
                             {gap.currentCoverage > 0
                               ? `₹${(gap.currentCoverage / 100000).toFixed(1)}L`
-                              : "Nothing"}
+                              : (isHindi ? 'कुछ नहीं' : 'Nothing')}
                           </span>
                           <span className="text-blue-600">
-                            Need: ₹
+                            {isHindi ? 'चाहिए: ' : 'Need: '}₹
                             {(gap.recommendedCoverage / 100000).toFixed(1)}L
                           </span>
                         </div>
@@ -586,7 +554,7 @@ export default function GapAnalysisPage() {
 
                       {gap.critical && gap.status !== "good" && (
                         <Badge className="mt-2 bg-red-100 text-red-700 text-xs">
-                          ⚠️ Critical Gap
+                          {isHindi ? '⚠️ गंभीर कमी' : '⚠️ Critical Gap'}
                         </Badge>
                       )}
                     </CardContent>
@@ -605,12 +573,9 @@ export default function GapAnalysisPage() {
                         <span className="text-3xl">{gap.icon}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">
-                              {gap.label}
+                            <h3 className={`font-semibold text-gray-900 ${isHindi ? 'hindi-text' : ''}`}>
+                              {isHindi ? gap.labelHindi : gap.label}
                             </h3>
-                            <span className="text-sm hindi-text text-blue-600">
-                              {gap.labelHindi}
-                            </span>
                             <Badge
                               className={
                                 gap.status === "good"
@@ -621,17 +586,17 @@ export default function GapAnalysisPage() {
                               }
                             >
                               {gap.status === "good"
-                                ? "Well Covered ✓"
+                                ? (isHindi ? 'अच्छी तरह कवर्ड ✓' : 'Well Covered ✓')
                                 : gap.status === "low"
-                                  ? "Low Coverage ⚠️"
-                                  : "Not Covered ✗"}
+                                  ? (isHindi ? 'कम कवरेज ⚠️' : 'Low Coverage ⚠️')
+                                  : (isHindi ? 'कवर नहीं ✗' : 'Not Covered ✗')}
                             </Badge>
                           </div>
 
                           <div className="grid grid-cols-3 gap-3 mb-3">
                             <div className="bg-gray-50 rounded-lg p-2 text-center">
-                              <p className="text-xs text-gray-500">
-                                Your Coverage
+                              <p className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                                {isHindi ? 'आपकी कवरेज' : 'Your Coverage'}
                               </p>
                               <p className="font-bold text-gray-900">
                                 {gap.currentCoverage > 0
@@ -640,12 +605,11 @@ export default function GapAnalysisPage() {
                               </p>
                             </div>
                             <div className="bg-blue-50 rounded-lg p-2 text-center">
-                              <p className="text-xs text-gray-500">
-                                Recommended
+                              <p className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                                {isHindi ? 'अनुशंसित' : 'Recommended'}
                               </p>
                               <p className="font-bold text-blue-700">
-                                ₹{(gap.recommendedCoverage / 100000).toFixed(1)}
-                                L
+                                ₹{(gap.recommendedCoverage / 100000).toFixed(1)}L
                               </p>
                             </div>
                             <div
@@ -653,14 +617,14 @@ export default function GapAnalysisPage() {
                                 gap.gap === 0 ? "bg-green-50" : "bg-red-50"
                               }`}
                             >
-                              <p className="text-xs text-gray-500">
-                                Gap Amount
+                              <p className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                                {isHindi ? 'कमी की राशि' : 'Gap Amount'}
                               </p>
                               <p
                                 className={`font-bold ${gap.gap === 0 ? "text-green-700" : "text-red-700"}`}
                               >
                                 {gap.gap === 0
-                                  ? "None!"
+                                  ? (isHindi ? 'नहीं!' : 'None!')
                                   : `₹${(gap.gap / 100000).toFixed(1)}L`}
                               </p>
                             </div>
@@ -669,17 +633,16 @@ export default function GapAnalysisPage() {
                           <div className="bg-blue-50 rounded-lg p-3">
                             <p className="text-sm text-gray-700 flex items-start gap-2">
                               <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                              {gap.reason}
-                            </p>
-                            <p className="text-xs text-blue-600 hindi-text mt-1 ml-6">
-                              {gap.reasonHindi}
+                              <span className={isHindi ? 'hindi-text' : ''}>
+                                {isHindi ? gap.reasonHindi : gap.reason}
+                              </span>
                             </p>
                           </div>
 
                           {gap.policies.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-xs text-gray-500 mb-1">
-                                Your policies in this category:
+                              <p className={`text-xs text-gray-500 mb-1 ${isHindi ? 'hindi-text' : ''}`}>
+                                {isHindi ? 'इस श्रेणी में आपकी पॉलिसी:' : 'Your policies in this category:'}
                               </p>
                               <div className="flex flex-wrap gap-1">
                                 {gap.policies.map((name, j) => (
@@ -710,7 +673,7 @@ export default function GapAnalysisPage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Lightbulb className="h-5 w-5 text-yellow-500" />
-                      Priority Actions / प्राथमिकता कार्य
+                      {isHindi ? 'प्राथमिकता कार्य' : 'Priority Actions'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -724,12 +687,11 @@ export default function GapAnalysisPage() {
                             {i + 1}
                           </div>
                           <div>
-                            <p className="text-sm text-gray-800">{rec}</p>
-                            {result.topRecommendationsHindi[i] && (
-                              <p className="text-xs text-orange-600 hindi-text mt-0.5">
-                                {result.topRecommendationsHindi[i]}
-                              </p>
-                            )}
+                            <p className={`text-sm text-gray-800 ${isHindi ? 'hindi-text' : ''}`}>
+                              {isHindi
+                                ? (result.topRecommendationsHindi[i] || rec)
+                                : rec}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -742,7 +704,7 @@ export default function GapAnalysisPage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Star className="h-5 w-5 text-blue-500" />
-                      Smart Insurance Tips / स्मार्ट बीमा सुझाव
+                      {isHindi ? 'स्मार्ट बीमा सुझाव' : 'Smart Insurance Tips'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -792,12 +754,9 @@ export default function GapAnalysisPage() {
                           <span className="text-xl flex-shrink-0">
                             {item.icon}
                           </span>
-                          <div>
-                            <p className="text-sm text-gray-800">{item.tip}</p>
-                            <p className="text-xs text-blue-600 hindi-text mt-0.5">
-                              {item.hindi}
-                            </p>
-                          </div>
+                          <p className={`text-sm text-gray-800 ${isHindi ? 'hindi-text' : ''}`}>
+                            {isHindi ? item.hindi : item.tip}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -812,7 +771,7 @@ export default function GapAnalysisPage() {
                     className="border-blue-200 text-blue-600 hover:bg-blue-50"
                   >
                     <Brain className="mr-2 h-4 w-4" />
-                    Re-run Analysis / दोबारा विश्लेषण
+                    {isHindi ? 'दोबारा विश्लेषण' : 'Re-run Analysis'}
                   </Button>
                 </div>
               </div>

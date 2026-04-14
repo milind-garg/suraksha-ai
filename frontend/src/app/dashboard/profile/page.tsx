@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { usePolicyStore } from '@/store/policy-store'
 import { useRecommendationStore } from '@/store/recommendation-store'
 import { useToast } from '@/hooks/use-toast'
+import { useLanguage } from '@/hooks/use-language'
 import { ProfileQuestionnaire } from '@/components/recommendations/ProfileQuestionnaire'
 import { updateUserProfile } from '@/lib/auth'
 import { formatPhoneNumber, validatePhoneNumber, formatPhoneForDisplay } from '@/lib/phone'
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   const { policies } = usePolicyStore()
   const { profile: recProfile, isProfileComplete } = useRecommendationStore()
   const { toast } = useToast()
+  const { isHindi } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [showRecommendationSection, setShowRecommendationSection] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -151,8 +153,9 @@ export default function ProfilePage() {
                 <div className="mt-4 bg-yellow-50 rounded-xl p-3 flex items-center gap-2">
                   <Award className="h-5 w-5 text-yellow-600 flex-shrink-0" />
                   <div className="text-left">
-                    <p className="text-xs font-medium text-gray-800">Insurance Aware!</p>
-                    <p className="text-xs text-yellow-600 hindi-text">बीमा जागरूक!</p>
+                    <p className={`text-xs font-medium text-gray-800 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? 'बीमा जागरूक!' : 'Insurance Aware!'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -169,7 +172,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">
                     <User className="h-5 w-5 text-blue-600" />
-                    Personal Information / व्यक्तिगत जानकारी
+                    {isHindi ? 'व्यक्तिगत जानकारी' : 'Personal Information'}
                   </CardTitle>
                   {!isEditing ? (
                     <Button
@@ -210,7 +213,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs text-gray-500 flex items-center gap-1">
-                      <User className="h-3 w-3" /> Full Name / पूरा नाम
+                      <User className="h-3 w-3" /> {isHindi ? 'पूरा नाम' : 'Full Name'}
                     </Label>
                     {isEditing ? (
                       <Input
@@ -219,21 +222,21 @@ export default function ProfilePage() {
                         className="mt-1"
                       />
                     ) : (
-                      <p className="mt-1 font-medium text-gray-900">{user?.name || 'Not set'}</p>
+                      <p className="mt-1 font-medium text-gray-900">{user?.name || (isHindi ? 'नहीं सेट' : 'Not set')}</p>
                     )}
                   </div>
 
                   <div>
                     <Label className="text-xs text-gray-500 flex items-center gap-1">
-                      <Mail className="h-3 w-3" /> Email / ईमेल
+                      <Mail className="h-3 w-3" /> {isHindi ? 'ईमेल' : 'Email'}
                     </Label>
-                    <p className="mt-1 font-medium text-gray-900">{user?.email || 'Not set'}</p>
-                    <p className="text-xs text-green-600">✓ Verified</p>
+                    <p className="mt-1 font-medium text-gray-900">{user?.email || (isHindi ? 'नहीं सेट' : 'Not set')}</p>
+                    <p className="text-xs text-green-600">✓ {isHindi ? 'सत्यापित' : 'Verified'}</p>
                   </div>
 
                   <div>
                     <Label className="text-xs text-gray-500 flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> Phone / फ़ोन
+                      <Phone className="h-3 w-3" /> {isHindi ? 'फ़ोन' : 'Phone'}
                     </Label>
                     {isEditing ? (
                       <div>
@@ -241,7 +244,7 @@ export default function ProfilePage() {
                           value={form.phone}
                           onChange={e => {
                             setForm(p => ({ ...p, phone: e.target.value }))
-                            setPhoneError('') // Clear error on input
+                            setPhoneError('')
                           }}
                           placeholder="Enter 10-digit number (e.g., 98765 43210)"
                           className="mt-1"
@@ -253,13 +256,15 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       <p className="mt-1 font-medium text-gray-900">
-                        {user?.phone ? formatPhoneForDisplay(user.phone) : 'Not added'}
+                        {user?.phone ? formatPhoneForDisplay(user.phone) : (isHindi ? 'नहीं जोड़ा' : 'Not added')}
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <Label className="text-xs text-gray-500">Member Since / सदस्य बने</Label>
+                    <Label className="text-xs text-gray-500">
+                      {isHindi ? 'सदस्य बने' : 'Member Since'}
+                    </Label>
                     <p className="mt-1 font-medium text-gray-900">
                       {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                     </p>
@@ -273,7 +278,7 @@ export default function ProfilePage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Shield className="h-5 w-5 text-green-600" />
-                  Insurance Summary / बीमा सारांश
+                  {isHindi ? 'बीमा सारांश' : 'Insurance Summary'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -283,8 +288,9 @@ export default function ProfilePage() {
                     <div className="text-lg font-bold text-gray-900">
                       {totalCoverage > 0 ? `₹${(totalCoverage/100000).toFixed(1)}L` : '₹0'}
                     </div>
-                    <div className="text-xs text-gray-500">Total Coverage</div>
-                    <div className="text-xs text-blue-500 hindi-text">कुल कवरेज</div>
+                    <div className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? 'कुल कवरेज' : 'Total Coverage'}
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -292,23 +298,25 @@ export default function ProfilePage() {
                     <div className="text-lg font-bold text-gray-900">
                       {totalPremium > 0 ? `₹${(totalPremium/1000).toFixed(1)}K` : '₹0'}
                     </div>
-                    <div className="text-xs text-gray-500">Annual Premium</div>
-                    <div className="text-xs text-blue-500 hindi-text">वार्षिक प्रीमियम</div>
+                    <div className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? 'वार्षिक प्रीमियम' : 'Annual Premium'}
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
                     <AlertTriangle className="h-5 w-5 text-orange-600 mx-auto mb-1" />
                     <div className="text-lg font-bold text-gray-900">{totalGaps}</div>
-                    <div className="text-xs text-gray-500">Coverage Gaps</div>
-                    <div className="text-xs text-blue-500 hindi-text">कवरेज कमियां</div>
+                    <div className={`text-xs text-gray-500 ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? 'कवरेज कमियां' : 'Coverage Gaps'}
+                    </div>
                   </div>
                 </div>
 
                 {/* Policy Types Breakdown */}
                 {policies.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2 font-medium">
-                      Policy Types / पॉलिसी प्रकार
+                    <p className={`text-xs text-gray-500 mb-2 font-medium ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi ? 'पॉलिसी प्रकार' : 'Policy Types'}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(policyTypeCount).map(([type, count]) => (
@@ -326,11 +334,10 @@ export default function ProfilePage() {
 
                 {policies.length === 0 && (
                   <div className="text-center py-4">
-                    <p className="text-gray-400 text-sm">
-                      Upload policies to see your insurance summary
-                    </p>
-                    <p className="text-blue-400 hindi-text text-xs mt-1">
-                      पॉलिसी अपलोड करें और अपना बीमा सारांश देखें
+                    <p className={`text-gray-400 text-sm ${isHindi ? 'hindi-text' : ''}`}>
+                      {isHindi
+                        ? 'पॉलिसी अपलोड करें और अपना बीमा सारांश देखें'
+                        : 'Upload policies to see your insurance summary'}
                     </p>
                   </div>
                 )}
@@ -350,7 +357,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Lightbulb className="h-5 w-5 text-purple-600" />
-                  Recommendation Profile / सुझाव प्रोफाइल
+                  {isHindi ? 'सुझाव प्रोफाइल' : 'Recommendation Profile'}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {isProfileComplete() && (
