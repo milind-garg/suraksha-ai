@@ -1,7 +1,7 @@
 /**
  * Unit tests for CORS helpers
  */
-import { getCorsHeaders, makePreflightResponse } from '../src/lib/cors';
+import { getCorsHeaders, makePreflightResponse } from '../lib/cors';
 
 describe('getCorsHeaders', () => {
   const original = process.env.ALLOWED_ORIGIN;

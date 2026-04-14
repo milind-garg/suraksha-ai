@@ -8,7 +8,7 @@ import {
   QueryCommand,
   ScanCommand
 } from '@aws-sdk/lib-dynamodb'
-import { Policy, User } from '../../types'
+import { Policy, User } from '../types'
 
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || 'ap-south-1'
