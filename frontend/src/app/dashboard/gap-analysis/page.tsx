@@ -120,7 +120,6 @@ export default function GapAnalysisPage() {
 
   const runGapAnalysis = async () => {
     setIsAnalyzing(true);
-    await new Promise((r) => setTimeout(r, 2000));
 
     const gaps: GapItem[] = RECOMMENDED_COVERAGE.map((rec) => {
       // Find matching policies

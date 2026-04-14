@@ -19,6 +19,7 @@ interface PeerComparisonWidgetProps {
     avgHomeInsurance: number;
     percentile: number;
     sampleSize: number;
+    isEstimate?: boolean;
   };
   insights: string[];
 }
@@ -67,7 +68,9 @@ export function PeerComparisonWidget({
       <CardHeader>
         <CardTitle>Your Coverage vs Peers</CardTitle>
         <CardDescription>
-          Compared to similar individuals in your age, income, and industry ({peerBenchmark.sampleSize} users)
+          {peerBenchmark.isEstimate
+            ? 'Benchmark estimates — not enough peer data yet to compute real averages'
+            : `Compared to similar individuals in your age, income, and industry (${peerBenchmark.sampleSize} users)`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

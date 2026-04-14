@@ -25,6 +25,7 @@ export async function getPeerComparison(userProfile: {
   avgHomeInsurance: number;
   percentile: number;
   sampleSize: number;
+  isEstimate: boolean;
 }> {
   try {
     // Query for similar users (age ±5, income ±20%, similar industry)
@@ -71,6 +72,7 @@ export async function getPeerComparison(userProfile: {
         avgHomeInsurance: 1000000, // Default: ₹10L
         percentile: 50,
         sampleSize: 0,
+        isEstimate: true,
       };
     }
 
@@ -135,6 +137,7 @@ export async function getPeerComparison(userProfile: {
       avgHomeInsurance,
       percentile,
       sampleSize: peers.length,
+      isEstimate: false,
     };
   } catch (error) {
     console.error("Error calculating peer comparison:", error);
@@ -146,6 +149,7 @@ export async function getPeerComparison(userProfile: {
       avgHomeInsurance: 1000000,
       percentile: 50,
       sampleSize: 0,
+      isEstimate: true,
     };
   }
 }

@@ -14,6 +14,10 @@ import {
   XCircle, ArrowLeft, IndianRupee, Calendar,
   TrendingUp, FileText, ChevronRight, Trash2
 } from 'lucide-react'
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle
+} from '@/components/ui/dialog'
 
 import { deletePolicy } from '@/lib/api'
 
@@ -23,6 +27,7 @@ export default function PolicyDetailPage() {
   const { toast } = useToast()
   const { policies, currentPolicy, setCurrentPolicy, updatePolicy, removePolicy } = usePolicyStore()
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const policyId = params.policyId as string
 
@@ -124,7 +129,6 @@ export default function PolicyDetailPage() {
   }
 }
 const handleDelete = async () => {
-  if (confirm('Are you sure you want to delete this policy?')) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL
       if (apiUrl && apiUrl !== 'PLACEHOLDER') {
@@ -134,10 +138,10 @@ const handleDelete = async () => {
       // Ignore API errors — still remove locally so the UI stays consistent
     }
     removePolicy(policyId)
+    setShowDeleteDialog(false)
     toast({ title: 'Policy Deleted', description: 'Policy removed successfully' })
     router.push('/dashboard/policies')
   }
-}
   if (!currentPolicy) {
     return <LoadingSpinner size="lg" className="min-h-screen" text="Loading policy..." />
   }
@@ -154,7 +158,7 @@ const handleDelete = async () => {
         <div className="flex gap-2">
   <Button
     variant="outline"
-    onClick={handleDelete}
+    onClick={() => setShowDeleteDialog(true)}
     className="border-red-200 text-red-600 hover:bg-red-50"
   >
     <Trash2 className="mr-2 h-4 w-4" />
@@ -367,6 +371,30 @@ const handleDelete = async () => {
         )}
 
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Policy</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this policy? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              className="border-red-200 text-red-600 hover:bg-red-50"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

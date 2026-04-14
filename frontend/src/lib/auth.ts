@@ -73,9 +73,9 @@ export async function getCurrentUserInfo() {
 
     // Extract user attributes from ID token claims
     const claims = session.tokens?.idToken?.payload
-    const email = claims?.email || user.username
-    const name = claims?.name || claims?.email?.split('@')[0] || user.username
-    const phone = claims?.phone_number
+    const email = (claims?.email as string | undefined) ?? user.username
+    const name = (claims?.name as string | undefined) ?? (typeof claims?.email === 'string' ? claims.email.split('@')[0] : undefined) ?? user.username
+    const phone = claims?.phone_number as string | undefined
 
     return {
       user: {
