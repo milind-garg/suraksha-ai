@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PageHeader } from '@/components/layout/page-header';
 import { generateRecommendations, getPeerComparison } from '@/lib/api';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { RecommendationList } from '@/components/recommendations/RecommendationList';
@@ -64,64 +65,65 @@ export default function RecommendationsPage() {
 
   if (!isProfileComplete() && !hasGeneratedOnce) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Policy Recommendations</h1>
-          <p className="text-gray-600 mt-2">Get personalized insurance recommendations for you</p>
+      <div>
+        <PageHeader
+          title="Policy Recommendations"
+          description="Get personalized insurance recommendations for you"
+        />
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Complete your profile first to get personalized recommendations.
+              <Link href="/dashboard/profile" className="ml-2 font-semibold underline hover:no-underline">
+                Go to Profile
+              </Link>
+            </AlertDescription>
+          </Alert>
+
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle>Build Your Recommendation Profile</CardTitle>
+              <CardDescription>
+                We'll analyze your personal, financial, and occupational information to provide targeted recommendations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>Personal: Age, family size, dependents</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>Financial: Income, expenses, savings</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>Occupation: Job title, industry, risk level</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span>Lifestyle: Health, exercise, goals</span>
+                </li>
+              </ul>
+              <Button className="mt-6" asChild>
+                <Link href="/dashboard/profile">Complete Your Profile</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Complete your profile first to get personalized recommendations.
-            <Link href="/dashboard/profile" className="ml-2 font-semibold underline hover:no-underline">
-              Go to Profile
-            </Link>
-          </AlertDescription>
-        </Alert>
-
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle>Build Your Recommendation Profile</CardTitle>
-            <CardDescription>
-              We'll analyze your personal, financial, and occupational information to provide targeted recommendations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Personal: Age, family size, dependents</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Financial: Income, expenses, savings</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Occupation: Job title, industry, risk level</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>Lifestyle: Health, exercise, goals</span>
-              </li>
-            </ul>
-            <Button className="mt-6" asChild>
-              <Link href="/dashboard/profile">Complete Your Profile</Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Your Policy Recommendations</h1>
-        <p className="text-gray-600 mt-2">Personalized recommendations based on your profile and peer comparison</p>
-      </div>
-
+    <div>
+      <PageHeader
+        title="Your Policy Recommendations"
+        description="Personalized recommendations based on your profile and peer comparison"
+      />
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -238,6 +240,7 @@ export default function RecommendationsPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }
