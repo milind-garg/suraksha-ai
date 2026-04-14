@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { UpdateCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../lib/dynamodb";
-import { UserRecommendationProfile } from "../../../types";
+import { UserRecommendationProfile } from "../../types";
 import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;

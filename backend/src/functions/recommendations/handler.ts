@@ -9,7 +9,7 @@ import {
   getUserCoverageMetrics,
 } from "../../lib/recommendations";
 import { getCorsHeaders, makePreflightResponse } from "../../lib/cors";
-import { RecommendationResult } from "../../../types";
+import { RecommendationResult } from "../../types";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 const POLICIES_TABLE = `suraksha-ai-policies-${process.env.ENVIRONMENT || "dev"}`;
