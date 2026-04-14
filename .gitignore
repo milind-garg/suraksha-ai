@@ -34,3 +34,6 @@ Thumbs.db
 *.docx
 *.xlsx
 *.pptx
+
+# Infrastructure outputs (contain real AWS resource IDs)
+infrastructure/scripts/stack-outputs.json

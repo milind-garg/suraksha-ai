@@ -43,7 +43,7 @@ export function ProfileQuestionnaire() {
         updateProfile(localProfile);
         // Save to backend
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const token = localStorage.getItem('auth_token');
+        const token = sessionStorage.getItem('auth_token');
 
         if (!token) {
           setError('Authentication required. Please log in.');

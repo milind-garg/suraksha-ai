@@ -2,21 +2,26 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { extractTextFromS3 } from '../../lib/textract'
 import { analyzePolicyWithClaude } from '../../lib/bedrock'
 import { getPolicy, updatePolicy } from '../../lib/dynamodb'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-}
+import { getCorsHeaders } from '../../lib/cors'
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || ''
 
 export const analyzePolicy = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin)
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' }
+  }
+
+  const userId = event.requestContext?.authorizer?.claims?.sub
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Unauthorized' })
+    }
   }
 
   const policyId = event.pathParameters?.policyId
@@ -40,6 +45,15 @@ export const analyzePolicy = async (
       }
     }
 
+    // Ownership check
+    if (policy.userId !== userId) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Forbidden' })
+      }
+    }
+
     // 2. Update status to processing
     await updatePolicy(policyId, { status: 'processing' })
 
@@ -50,7 +64,7 @@ export const analyzePolicy = async (
     try {
       extractedText = await extractTextFromS3(BUCKET_NAME, policy.s3Key)
       console.log(`Extracted ${extractedText.length} characters`)
-    } catch (textractError: any) {
+    } catch (textractError: unknown) {
       console.error('Textract error:', textractError)
       extractedText = `Policy Name: ${policy.policyName}\nPolicy Type: ${policy.policyType}\nInsurer: ${policy.insurerName}\nSum Insured: ${policy.sumInsured}\nPremium: ${policy.premiumAmount}`
     }
@@ -102,14 +116,14 @@ export const analyzePolicy = async (
       })
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Analysis error:', error)
     await updatePolicy(policyId, { status: 'error' }).catch(() => {})
 
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: 'Internal server error' })
     }
   }
 }

@@ -106,7 +106,7 @@ export default function UploadPage() {
       setUploadProgress(10)
 
       // Get presigned URL from Lambda
-      const token = localStorage.getItem('auth_token')
+      const token = sessionStorage.getItem('auth_token')
       const urlResponse = await fetch(`${apiUrl}/upload/presigned-url`, {
         method: 'POST',
         headers: {

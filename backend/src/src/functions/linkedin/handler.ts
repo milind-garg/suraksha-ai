@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient } from "../../lib/dynamodb";
+import { getCorsHeaders } from "../../lib/cors";
 
 const USERS_TABLE = `suraksha-ai-users-${process.env.ENVIRONMENT || "dev"}`;
 
@@ -81,15 +82,12 @@ const SALARY_LOOKUP: {
 };
 
 // ─── CORS Headers ──────────────────────────────────────
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin);
+
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -98,14 +96,20 @@ export const handler = async (
     };
   }
 
-  try {
-    const userId =
-      event.requestContext?.authorizer?.claims?.sub || "demo-user";
+  const userId = event.requestContext?.authorizer?.claims?.sub;
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Unauthorized" }),
+    };
+  }
 
+  try {
     console.log("LinkedIn handler invoked for userId:", userId);
 
     if (event.httpMethod === "POST" && event.body) {
-      return await analyzeLinkedIn(userId, event.body);
+      return await analyzeLinkedIn(userId, event.body, corsHeaders);
     }
 
     return {
@@ -113,15 +117,12 @@ export const handler = async (
       headers: corsHeaders,
       body: JSON.stringify({ error: "Invalid request" }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Internal server error",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
@@ -129,7 +130,8 @@ export const handler = async (
 // ─── Analyze LinkedIn Profile ──────────────────────────
 async function analyzeLinkedIn(
   userId: string,
-  body: string
+  body: string,
+  corsHeaders: Record<string, string>
 ): Promise<APIGatewayProxyResult> {
   try {
     const { linkedinUrl } = JSON.parse(body);
@@ -201,15 +203,12 @@ async function analyzeLinkedIn(
         },
       }),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error analyzing LinkedIn:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Failed to analyze LinkedIn profile",
-        message: error.message,
-      }),
+      body: JSON.stringify({ error: "Failed to analyze LinkedIn profile" }),
     };
   }
 }

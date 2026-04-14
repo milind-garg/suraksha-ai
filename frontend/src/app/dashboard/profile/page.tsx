@@ -69,7 +69,7 @@ export default function ProfilePage() {
             ...(form.name && { name: form.name }),
             ...(form.phone && { phone: formatPhoneNumber(form.phone) }),
           },
-          localStorage.getItem('auth_token') || ''
+          sessionStorage.getItem('auth_token') || ''
         )
       }
 

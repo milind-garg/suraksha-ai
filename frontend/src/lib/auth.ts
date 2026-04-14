@@ -110,13 +110,13 @@ export async function updateUserProfile(userData: {
   phone?: string
 }): Promise<any> {
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = sessionStorage.getItem('auth_token')
 
-    // If demo token, just update local storage
+    // If demo token, just update session storage
     if (token === 'demo-token') {
-      const user = JSON.parse(localStorage.getItem('auth_user') || '{}')
+      const user = JSON.parse(sessionStorage.getItem('auth_user') || '{}')
       const updated = { ...user, ...userData }
-      localStorage.setItem('auth_user', JSON.stringify(updated))
+      sessionStorage.setItem('auth_user', JSON.stringify(updated))
       return updated
     }
 

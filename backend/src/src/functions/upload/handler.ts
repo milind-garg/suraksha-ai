@@ -2,26 +2,29 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { v4 as uuidv4 } from 'uuid'
 import { generateUploadUrl } from '../../lib/s3'
 import { createPolicy } from '../../lib/dynamodb'
+import { getCorsHeaders } from '../../lib/cors'
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-}
 
 export const getPresignedUrl = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const corsHeaders = getCorsHeaders(event.headers?.origin ?? event.headers?.Origin)
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
+  const userId = event.requestContext?.authorizer?.claims?.sub
+  if (!userId) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Unauthorized' })
+    }
+  }
+
   try {
-    const userId = event.requestContext?.authorizer?.claims?.sub || 'demo-user'
     const body = JSON.parse(event.body || '{}')
 
     const { fileName, fileType, policyName, policyType } = body
@@ -72,12 +75,12 @@ export const getPresignedUrl = async (
       body: JSON.stringify({ uploadUrl, policyId, s3Key })
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Upload error:', error)
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: 'Internal server error' })
     }
   }
 }

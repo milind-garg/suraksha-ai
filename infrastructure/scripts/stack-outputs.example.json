@@ -1,0 +1,8 @@
+{
+  "UsersTableName": "suraksha-ai-users-<ENVIRONMENT>",
+  "UserPoolClientId": "<COGNITO_USER_POOL_CLIENT_ID>",
+  "LambdaExecutionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/suraksha-ai-lambda-role-<ENVIRONMENT>",
+  "UserPoolId": "<COGNITO_USER_POOL_ID>",
+  "PoliciesTableName": "suraksha-ai-policies-<ENVIRONMENT>",
+  "S3BucketName": "suraksha-ai-policies-<ENVIRONMENT>-<ACCOUNT_ID>"
+}
