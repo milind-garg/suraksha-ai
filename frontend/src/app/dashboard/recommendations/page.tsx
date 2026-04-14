@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuthStore } from '@/store/auth-store';
+import { getAuthToken } from '@/lib/auth';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { RecommendationList } from '@/components/recommendations/RecommendationList';
 import { PeerComparisonWidget } from '@/components/recommendations/PeerComparisonWidget';
@@ -13,7 +13,6 @@ import { RecommendationExportMenu } from '@/components/recommendations/Recommend
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function RecommendationsPage() {
-  const { token } = useAuthStore();
   const {
     profile,
     recommendations,
@@ -44,6 +43,7 @@ export default function RecommendationsPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const token = await getAuthToken();
       // Generate recommendations
       const recResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/recommendations/generate`,

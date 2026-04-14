@@ -98,8 +98,26 @@ export const deletePolicyById = async (
       };
     }
 
+    const userId = event.requestContext?.authorizer?.claims?.sub || "demo-user";
+
     const policy = await getPolicy(policyId);
-    if (policy?.s3Key) {
+    if (!policy) {
+      return {
+        statusCode: 404,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Policy not found" }),
+      };
+    }
+
+    if (policy.userId !== userId) {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Forbidden" }),
+      };
+    }
+
+    if (policy.s3Key) {
       await deleteS3Object(policy.s3Key).catch(() => {});
     }
 
