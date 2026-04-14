@@ -247,6 +247,13 @@ interface SalaryBand {
   currency: string;
 }
 
+function getExpBracket(experienceYears: number): string {
+  if (experienceYears >= 8) return "8+";
+  if (experienceYears >= 5) return "5-8";
+  if (experienceYears >= 3) return "3-5";
+  return "0-3";
+}
+
 function inferSalaryBand(
   jobTitle: string,
   industry: string,
@@ -264,10 +271,7 @@ function inferSalaryBand(
     // Try partial match
     for (const [key, value] of Object.entries(industryData)) {
       if (jobTitle.includes(key) || key.includes(jobTitle)) {
-        let bracket = "0-3";
-        if (experienceYears >= 8) bracket = "8+";
-        else if (experienceYears >= 5) bracket = "5-8";
-        else if (experienceYears >= 3) bracket = "3-5";
+        const bracket = getExpBracket(experienceYears);
         const band = value[bracket] ?? value["8+"] ?? value["0-3"];
         return { min: band.min, max: band.max, currency: "INR" };
       }
@@ -276,10 +280,7 @@ function inferSalaryBand(
   }
 
   // Determine experience bracket
-  let expBracket = "0-3";
-  if (experienceYears >= 8) expBracket = "8+";
-  else if (experienceYears >= 5) expBracket = "5-8";
-  else if (experienceYears >= 3) expBracket = "3-5";
+  const expBracket = getExpBracket(experienceYears);
 
   const salary = jobData[expBracket] || jobData["8+"] || jobData["0-3"];
 

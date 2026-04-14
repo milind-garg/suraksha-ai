@@ -8,16 +8,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRecommendationStore } from '@/store/recommendation-store';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
+function parseIntSafe(value: string): number | undefined {
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? undefined : parsed;
+}
+
 export function ProfileQuestionnaire() {
   const { profile, updateProfile, setIsLoading, setError, isLoading, error } = useRecommendationStore();
   const [step, setStep] = useState(1);
   const [localProfile, setLocalProfile] = useState(profile || {});
   const [successMessage, setSuccessMessage] = useState('');
-
-  const parseIntSafe = (value: string): number | undefined => {
-    const parsed = parseInt(value, 10);
-    return isNaN(parsed) ? undefined : parsed;
-  };
 
   const handleInputChange = (field: string, value: string | number | boolean | undefined) => {
     setLocalProfile({ ...localProfile, [field]: value });
