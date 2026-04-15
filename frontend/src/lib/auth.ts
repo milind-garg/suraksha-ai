@@ -7,8 +7,11 @@ import {
   getCurrentUser,
   fetchAuthSession,
   updateUserAttributes,
+  resetPassword,
+  confirmResetPassword,
   type SignUpOutput,
-  type SignInOutput
+  type SignInOutput,
+  type ResetPasswordOutput
 } from 'aws-amplify/auth'
 
 // ─── Sign Up ───────────────────────────────────────────
@@ -102,6 +105,24 @@ export async function getAuthToken(): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+// ─── Forgot Password (send reset code) ─────────────────
+export async function forgotPassword(email: string): Promise<ResetPasswordOutput> {
+  return await resetPassword({ username: email })
+}
+
+// ─── Confirm Forgot Password ───────────────────────────
+export async function confirmForgotPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<void> {
+  await confirmResetPassword({
+    username: email,
+    confirmationCode: code,
+    newPassword
+  })
 }
 
 // ─── Update User Profile ───────────────────────────────
