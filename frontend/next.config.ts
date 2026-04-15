@@ -1,8 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // No 'output: export' — Vercel and AWS Amplify Compute both support
-  // Next.js SSR natively so static export is not needed.
+  // Static export so AWS Amplify static hosting (WEB mode) can serve
+  // the pre-rendered HTML files directly from the `out/` directory.
+  output: 'export',
+  // Required for static export — asset URLs use relative paths so they
+  // work regardless of the CDN sub-path Amplify assigns.
   images: { unoptimized: true },
 }
 

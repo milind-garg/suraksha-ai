@@ -13,14 +13,14 @@ applications:
           commands:
             - npm run build
       artifacts:
-        # SSR mode: Next.js outputs to .next/ (not out/).
-        # AWS Amplify Compute picks this up automatically when the app
-        # platform is set to WEB_COMPUTE in the Amplify Console.
-        baseDirectory: .next
+        # Static export: Next.js writes pre-rendered HTML/CSS/JS to `out/`.
+        # Amplify static hosting (WEB mode) serves this directory directly,
+        # so every route has its own index.html and the root URL resolves
+        # to out/index.html — no WEB_COMPUTE / SSR runtime required.
+        baseDirectory: out
         files:
           - '**/*'
       cache:
         paths:
           - node_modules/**/*
-          - .next/cache/**/*
     appRoot: frontend
