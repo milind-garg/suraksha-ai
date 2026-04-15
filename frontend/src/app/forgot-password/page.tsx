@@ -11,6 +11,8 @@ import { forgotPassword, confirmForgotPassword } from '@/lib/auth'
 
 type Step = 'request' | 'reset'
 
+const RESET_CODE_LENGTH = 6
+
 export default function ForgotPasswordPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -24,21 +26,12 @@ export default function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  // ─── Step 1: Request reset code ─────────────────────────
-  const handleRequestCode = async () => {
-    if (!email) {
-      toast({ title: 'Error', description: 'Please enter your email address', variant: 'destructive' })
-      return
-    }
-
+  // ─── Shared: send/resend reset code ─────────────────────
+  const sendResetCode = async () => {
     setIsLoading(true)
     try {
       await forgotPassword(email)
-      setStep('reset')
-      toast({
-        title: 'Code Sent!',
-        description: `A reset code has been sent to ${email}`
-      })
+      return true
     } catch (error: unknown) {
       let message = 'Failed to send reset code. Please try again.'
       if (error instanceof Error) {
@@ -52,14 +45,31 @@ export default function ForgotPasswordPage() {
         }
       }
       toast({ title: 'Error', description: message, variant: 'destructive' })
+      return false
     } finally {
       setIsLoading(false)
     }
   }
 
+  // ─── Step 1: Request reset code ─────────────────────────
+  const handleRequestCode = async () => {
+    if (!email) {
+      toast({ title: 'Error', description: 'Please enter your email address', variant: 'destructive' })
+      return
+    }
+    const sent = await sendResetCode()
+    if (sent) {
+      setStep('reset')
+      toast({
+        title: 'Code Sent!',
+        description: `A reset code has been sent to ${email}`
+      })
+    }
+  }
+
   // ─── Step 2: Confirm reset ──────────────────────────────
   const handleResetPassword = async () => {
-    if (!code || code.length !== 6) {
+    if (!code || code.length !== RESET_CODE_LENGTH) {
       toast({ title: 'Error', description: 'Enter the 6-digit code', variant: 'destructive' })
       return
     }
@@ -187,10 +197,10 @@ export default function ForgotPasswordPage() {
                   id="code"
                   placeholder="123456"
                   value={code}
-                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, RESET_CODE_LENGTH))}
                   onKeyDown={handleKeyDown}
                   className="mt-1 text-center text-2xl font-bold tracking-widest"
-                  maxLength={6}
+                  maxLength={RESET_CODE_LENGTH}
                 />
               </div>
 
@@ -266,11 +276,9 @@ export default function ForgotPasswordPage() {
                 <p className="text-sm text-gray-500">Didn't receive the code?</p>
                 <button
                   onClick={async () => {
-                    try {
-                      await forgotPassword(email)
+                    const sent = await sendResetCode()
+                    if (sent) {
                       toast({ title: 'Code Resent', description: 'Check your email again' })
-                    } catch {
-                      toast({ title: 'Error', description: 'Failed to resend code', variant: 'destructive' })
                     }
                   }}
                   className="text-blue-600 text-sm font-medium hover:underline"
