@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRecommendationStore } from '@/store/recommendation-store';
+import { updateProfile as saveProfileToBackend } from '@/lib/api';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
 function parseIntSafe(value: string): number | undefined {
@@ -41,29 +42,8 @@ export function ProfileQuestionnaire() {
       setError(null);
       try {
         updateProfile(localProfile);
-        // Save to backend
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const token = sessionStorage.getItem('auth_token');
-
-        if (!token) {
-          setError('Authentication required. Please log in.');
-          setIsLoading(false);
-          return;
-        }
-
-        const response = await fetch(`${apiUrl}/users/profile`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(localProfile),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to save profile (${response.status})`);
-        }
+        // Save to backend via the shared axios client (auth token injected automatically)
+        await saveProfileToBackend(localProfile);
 
         setError(null);
         setSuccessMessage('Profile saved successfully!');
