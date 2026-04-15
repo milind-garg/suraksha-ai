@@ -53,6 +53,16 @@ export async function loginUser(
   email: string,
   password: string
 ): Promise<SignInOutput> {
+  // Sign out any existing session first. In browsers where a previous
+  // Amplify session is still cached in localStorage, calling signIn()
+  // without signing out first throws UserAlreadyAuthenticatedException.
+  try {
+    await signOut()
+  } catch {
+    // Expected when there is no active session (e.g. fresh browser or
+    // already signed out). Safe to ignore.
+  }
+
   const result = await signIn({
     username: email,
     password

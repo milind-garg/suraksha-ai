@@ -22,6 +22,13 @@ import {
 
 import { deletePolicy, analyzePolicy as analyzePolicyApi, getPolicy as fetchPolicy } from '@/lib/api'
 
+// Required for Next.js static export (`output: 'export'`).
+// All policy detail pages are reached via client-side navigation so no
+// paths need to be pre-rendered at build time.
+export function generateStaticParams() {
+  return []
+}
+
 export default function PolicyDetailPage() {
   const params = useParams()
   const router = useRouter()
