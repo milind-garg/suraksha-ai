@@ -50,6 +50,12 @@ export default function LoginPage() {
           description: "Login successful",
         });
         router.push("/dashboard");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Unable to retrieve your session. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: unknown) {
       let message = "Login failed. Please try again.";
