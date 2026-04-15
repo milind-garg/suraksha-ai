@@ -71,11 +71,18 @@ Be accurate, helpful, and use simple language that Indian families can understan
   // still cap it to prevent runaway token usage.
   const safeText = extractedText.substring(0, 8000);
 
-  const prompt = `Analyze this ${safePolicyType} insurance policy named "${safePolicyName}".
+  const prompt = `You have been given a document that is supposed to be a ${safePolicyType} insurance policy named "${safePolicyName}".
 
-POLICY TEXT:
+DOCUMENT TEXT:
 ${safeText}
 
+STEP 1 — VALIDATION:
+Determine whether this document is actually an insurance policy or an insurance-related document.
+Acceptable documents include: policy schedules, certificates of insurance, premium receipts, and policy wordings.
+If the document is clearly NOT insurance-related (e.g. a recipe, news article, random text, or any non-insurance content), respond with ONLY this JSON and nothing else:
+{"error": "not_insurance_document", "message": "The uploaded document does not appear to be an insurance policy. Please upload a valid insurance policy document (PDF or image of your policy)."}
+
+STEP 2 — ANALYSIS (only if the document passes validation):
 Respond with ONLY this JSON structure (no markdown, no extra text):
 {
   "summary": "2-3 sentence plain English summary of what this policy covers",

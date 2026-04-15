@@ -67,7 +67,29 @@ export const analyzePolicy = async (
       console.log(`Extracted ${extractedText.length} characters`)
     } catch (textractError: unknown) {
       console.error('Textract error:', textractError)
-      extractedText = `Policy Name: ${policy.policyName}\nPolicy Type: ${policy.policyType}\nInsurer: ${policy.insurerName}\nSum Insured: ${policy.sumInsured}\nPremium: ${policy.premiumAmount}`
+      await updatePolicy(policyId, { status: 'error' }).catch(() => {})
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: 'Could not read the uploaded document. Please ensure you are uploading a valid, non-corrupted PDF or image file.'
+        })
+      }
+    }
+
+    // Require a minimum amount of readable text; a very short extraction means
+    // the document is likely blank, corrupt, or an unsupported format.
+    const MIN_TEXT_LENGTH = 100
+    if (extractedText.trim().length < MIN_TEXT_LENGTH) {
+      console.warn(`Extracted text too short (${extractedText.trim().length} chars) — rejecting document`)
+      await updatePolicy(policyId, { status: 'error' }).catch(() => {})
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: 'The uploaded document appears to be blank or contains too little text to analyze. Please upload a valid insurance policy document.'
+        })
+      }
     }
 
     // 4. Analyze with Claude
@@ -97,6 +119,19 @@ export const analyzePolicy = async (
         claimSuccessProbability: 70,
         coverageGaps: [],
         recommendations: ['Please review the policy document manually']
+      }
+    }
+
+    // 5a. Detect if Claude flagged this as a non-insurance document
+    if (analysisResult?.error === 'not_insurance_document') {
+      console.warn('Claude rejected document as non-insurance content')
+      await updatePolicy(policyId, { status: 'error' }).catch(() => {})
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: analysisResult.message || 'The uploaded document does not appear to be an insurance policy. Please upload a valid insurance policy document.'
+        })
       }
     }
 

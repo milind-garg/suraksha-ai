@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import axios from 'axios'
 import { usePolicyStore } from '@/store/policy-store'
 import { PageHeader } from '@/components/layout/page-header'
 import { Button } from '@/components/ui/button'
@@ -137,9 +138,14 @@ export default function PolicyDetailPage() {
 
   } catch (error: unknown) {
     updatePolicy(policyId, { status: 'error' })
+    // Extract the specific error message from the API response body when available
+    // (e.g. "not an insurance document" returned as a 422 from the backend).
+    const apiMessage = axios.isAxiosError(error)
+      ? (error.response?.data as { error?: string })?.error
+      : undefined
     toast({
       title: 'Analysis Failed',
-      description: error instanceof Error ? error.message : 'Please try again',
+      description: apiMessage || (error instanceof Error ? error.message : 'Please try again'),
       variant: 'destructive'
     })
   } finally {

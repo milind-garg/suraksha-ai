@@ -57,7 +57,8 @@ export async function getPolicy(policyId: string) {
 }
 
 export async function analyzePolicy(policyId: string) {
-  const response = await api.post(`/policies/${policyId}/analyze`)
+  // Analysis involves async Textract (up to 2 min) + Claude — use a longer timeout.
+  const response = await api.post(`/policies/${policyId}/analyze`, undefined, { timeout: 180000 })
   return response.data
 }
 
