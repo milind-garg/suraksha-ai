@@ -30,7 +30,24 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await loginUser(form.email, form.password);
+      const signInResult = await loginUser(form.email, form.password);
+
+      // Amplify returns isSignedIn: false when an additional step is required
+      // (e.g. CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED) rather than throwing.
+      if (!signInResult.isSignedIn) {
+        const step = signInResult.nextStep?.signInStep;
+        toast({
+          title: "Additional Step Required",
+          description:
+            step === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED"
+              ? "You must set a new password before logging in."
+              : step
+              ? `Sign-in requires an additional step: ${step}`
+              : "Sign-in could not be completed. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Get user info after login
       const userInfo = await getCurrentUserInfo();
@@ -50,11 +67,19 @@ export default function LoginPage() {
           description: "Login successful",
         });
         router.push("/dashboard");
+      } else {
+        // signIn succeeded but we could not retrieve a valid session — show an
+        // actionable error rather than leaving the user stuck on the login page.
+        toast({
+          title: "Login Failed",
+          description: "Could not establish a session. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: unknown) {
       let message = "Login failed. Please try again.";
-      if (error instanceof Error) {
-        const name = (error as any).name as string | undefined
+      if (error !== null && typeof error === "object" && "name" in error && typeof (error as { name: unknown }).name === "string") {
+        const name = (error as { name: string }).name;
         if (name === "NotAuthorizedException") {
           message = "Wrong email or password";
         } else if (name === "UserNotConfirmedException") {
