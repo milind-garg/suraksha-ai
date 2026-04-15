@@ -22,6 +22,10 @@ import {
 
 import { deletePolicy, analyzePolicy as analyzePolicyApi, getPolicy as fetchPolicy } from '@/lib/api'
 
+export function generateStaticParams() {
+  return []
+}
+
 export default function PolicyDetailPage() {
   const params = useParams()
   const router = useRouter()
