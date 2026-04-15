@@ -240,6 +240,7 @@ const handleDelete = async () => {
                   : 'Get coverage details, identify gaps, and predict claim success'}
               </p>
               <Button
+                type="button"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
                 className="bg-white text-blue-700 hover:bg-blue-50 px-8 py-5 text-base"
