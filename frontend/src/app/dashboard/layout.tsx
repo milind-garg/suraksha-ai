@@ -52,7 +52,8 @@ export default function DashboardLayout({
     };
 
     checkAuth();
-  }, [router, setUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (checking) {
     return (
