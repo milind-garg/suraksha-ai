@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Suraksha AI — AWS Amplify Hosting (SSR / Compute mode)
+  Provisions the Amplify App using WEB_COMPUTE platform so that Next.js
+  Server-Side Rendering works correctly alongside the static pages.
+  Dynamic routes like /dashboard/policies/[policyId] are handled by the
+  Next.js runtime — no SPA rewrite rules are required.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: suraksha-ai
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+  # Personal-access token stored in Secrets Manager or SSM is preferred.
+  # For a quick manual deploy you can pass the token directly, but keep
+  # it out of source control.
+  GitHubRepository:
+    Type: String
+    Description: >
+      Full HTTPS URL of the GitHub repository
+      (e.g. https://github.com/milind-garg/suraksha-ai)
+
+  GitHubOAuthToken:
+    Type: String
+    NoEcho: true
+    Description: >
+      GitHub personal-access token with repo scope.
+      Best practice: store the token in AWS Secrets Manager and pass the
+      resolved value using CloudFormation dynamic references, e.g.:
+        GitHubOAuthToken: '{{resolve:secretsmanager:suraksha-ai/github-token}}'
+      NEVER hard-code the token in parameter files or source control.
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Branch to deploy
+
+Resources:
+
+  # ============================================================
+  # Amplify App (SSR / Compute)
+  # ============================================================
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: !Sub '${ProjectName}-${Environment}'
+      Repository: !Ref GitHubRepository
+      OauthToken: !Ref GitHubOAuthToken
+      # WEB_COMPUTE enables Next.js SSR (Amplify Compute).
+      # With SSR, dynamic routes and server components work out-of-the-box
+      # without any SPA rewrite rules.
+      Platform: WEB_COMPUTE
+      BuildSpec: |
+        version: 1
+        applications:
+          - frontend:
+              phases:
+                preBuild:
+                  commands:
+                    - nvm install 20
+                    - nvm use 20
+                    - node --version
+                    - npm install --legacy-peer-deps
+                build:
+                  commands:
+                    - npm run build
+              artifacts:
+                baseDirectory: .next
+                files:
+                  - '**/*'
+              cache:
+                paths:
+                  - node_modules/**/*
+                  - .next/cache/**/*
+            appRoot: frontend
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ============================================================
+  # Amplify Branch
+  # ============================================================
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: !Ref GitHubBranch
+      EnableAutoBuild: true
+      Stage: !If
+        - IsProd
+        - PRODUCTION
+        - DEVELOPMENT
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Outputs:
+  AmplifyAppId:
+    Description: Amplify App ID
+    Value: !GetAtt AmplifyApp.AppId
+    Export:
+      Name: !Sub '${ProjectName}-amplify-app-id-${Environment}'
+
+  AmplifyDefaultDomain:
+    Description: Amplify default domain
+    Value: !Sub 'https://${GitHubBranch}.${AmplifyApp.DefaultDomain}'
+    Export:
+      Name: !Sub '${ProjectName}-amplify-domain-${Environment}'
