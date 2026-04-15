@@ -156,51 +156,100 @@ suraksha-ai/
 
 ## 🌐 Deployment
 
-### Deploy to Vercel (Recommended)
+The app can be deployed to **both Vercel and AWS Amplify** simultaneously.
+Both platforms support Next.js SSR natively — no static export or extra config
+is required.
+
+---
+
+### Deploy to Vercel
 
 1. Fork this repository
 2. Go to [vercel.com](https://vercel.com) → New Project → Import repo
 3. Set **Root Directory** to `frontend`
-4. Add environment variables (see above)
+4. Add the environment variables listed above
 5. Click **Deploy**
 
-> **Note**: Make sure Deployment Protection is **disabled** in Vercel Settings → Deployment Protection for public access.
+> **Note**: Disable Deployment Protection in Vercel Settings for public access.
 
-### Deploy to AWS Amplify
+---
 
-The `amplify.yml` in the root handles monorepo build config:
+### Deploy to AWS Amplify (SSR / Compute mode)
 
-```yaml
-version: 1
-applications:
-  - frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm install --legacy-peer-deps
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: out
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
-    appRoot: frontend
+The `amplify.yml` at the repo root configures the monorepo build.
+Amplify auto-detects `amplify.yml` — no extra configuration is needed in the
+Amplify Console build settings.
+
+> **Important**: Select **Web compute** (SSR) as the platform, not
+> *Web hosting* (static), when creating the Amplify app.  This enables
+> Next.js Server-Side Rendering and dynamic routing out-of-the-box.
+
+#### Option A — Console (quick start)
+
+1. Open [AWS Amplify Console](https://console.aws.amazon.com/amplify/) → **New app → Host web app**
+2. Connect your GitHub repository and select the branch (e.g. `main`)
+3. On the **Build settings** screen, confirm the platform is **Web compute**
+4. Amplify auto-detects `amplify.yml` — review and click **Save and deploy**
+5. Set the environment variables below in **App settings → Environment variables**
+
+#### Option B — CloudFormation (infrastructure-as-code)
+
+The `infrastructure/cloudformation/amplify-hosting.yaml` template creates the
+Amplify App (WEB_COMPUTE platform) and Branch automatically.
+
+```bash
+# Mac/Linux
+# Retrieve the token from Secrets Manager (never hard-code it):
+GITHUB_TOKEN=$(aws secretsmanager get-secret-value \
+  --secret-id suraksha-ai/github-token \
+  --query SecretString --output text)
+
+DEPLOY_AMPLIFY=true \
+GITHUB_REPOSITORY=https://github.com/<your-fork>/suraksha-ai \
+GITHUB_OAUTH_TOKEN="$GITHUB_TOKEN" \
+GITHUB_BRANCH=main \
+./infrastructure/scripts/deploy.sh dev ap-south-1
+
+# Windows (PowerShell)
+# Retrieve the token from Secrets Manager (never hard-code it):
+$GithubToken = (aws secretsmanager get-secret-value `
+  --secret-id suraksha-ai/github-token `
+  --query SecretString --output text)
+
+./infrastructure/scripts/deploy.ps1 `
+  -Environment dev `
+  -Region ap-south-1 `
+  -DeployAmplify `
+  -GitHubRepository "https://github.com/<your-fork>/suraksha-ai" `
+  -GitHubOAuthToken $GithubToken `
+  -GitHubBranch "main"
 ```
+
+#### Amplify Environment Variables
+
+Set these in the Amplify Console under **App settings → Environment variables**:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_AWS_REGION` | `ap-south-1` |
+| `NEXT_PUBLIC_USER_POOL_ID` | Cognito User Pool ID |
+| `NEXT_PUBLIC_USER_POOL_CLIENT_ID` | Cognito User Pool Client ID |
+| `NEXT_PUBLIC_S3_BUCKET` | S3 bucket name |
+| `NEXT_PUBLIC_API_URL` | API Gateway URL (or `PLACEHOLDER` for demo mode) |
+| `NEXT_PUBLIC_APP_NAME` | `Suraksha AI` |
+
+---
 
 ### Deploy Backend (AWS Lambda)
 
 ```bash
 cd infrastructure/scripts
-./deploy.ps1   # Windows
+./deploy.sh dev ap-south-1    # Mac/Linux
 # or
-./deploy.sh    # Mac/Linux
+./deploy.ps1 -Environment dev -Region ap-south-1   # Windows
 ```
 
-This deploys the CloudFormation stack with all AWS resources.
+This deploys the CloudFormation stack with Cognito, S3, DynamoDB, Lambda, and API Gateway.
 
 ---
 

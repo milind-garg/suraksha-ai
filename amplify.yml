@@ -4,15 +4,23 @@ applications:
       phases:
         preBuild:
           commands:
+            # Pin Node.js 20 (required by this project)
+            - nvm install 20
+            - nvm use 20
+            - node --version
             - npm install --legacy-peer-deps
         build:
           commands:
             - npm run build
       artifacts:
-        baseDirectory: out
+        # SSR mode: Next.js outputs to .next/ (not out/).
+        # AWS Amplify Compute picks this up automatically when the app
+        # platform is set to WEB_COMPUTE in the Amplify Console.
+        baseDirectory: .next
         files:
           - '**/*'
       cache:
         paths:
           - node_modules/**/*
+          - .next/cache/**/*
     appRoot: frontend

@@ -1,9 +1,6 @@
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { AmplifyProvider } from '@/components/AmplifyProvider'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Suraksha AI - Insurance Intelligence Platform',
@@ -17,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <AmplifyProvider>
           {children}
         </AmplifyProvider>
