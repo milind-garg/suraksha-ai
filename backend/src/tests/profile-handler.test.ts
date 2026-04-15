@@ -156,7 +156,7 @@ describe('profile handler', () => {
       expect(stored.exerciseFrequency).toBe('weekly')
     })
 
-    it('truncates goals to 1 000 characters', async () => {
+    it('truncates goals to 1,000 characters', async () => {
       mockSend.mockResolvedValue({
         Attributes: { userId: 'user-123', recommendationProfile: validProfile },
       })
